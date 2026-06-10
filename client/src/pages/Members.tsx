@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Mail, User, Briefcase, Users } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Mail, User, Briefcase, Users, RefreshCw } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -46,6 +46,62 @@ export default function Members() {
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [form, setForm] = useState({ name: "", email: "", role: "" });
   const [customRole, setCustomRole] = useState("");
+
+  const syncUsersToMembers = () => {
+    try {
+      const users = JSON.parse(localStorage.getItem("akmal-users") || "[]");
+      const currentMembers = JSON.parse(localStorage.getItem("akmal-members") || "[]");
+      let added = 0;
+      users.forEach((u: any) => {
+        if (!currentMembers.find((m: Member) => m.email?.toLowerCase() === u.email?.toLowerCase())) {
+          currentMembers.push({
+            id: String(Date.now() + Math.random()),
+            name: u.name,
+            email: u.email,
+            role: "Team Member",
+            avatar: u.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2),
+          });
+          added++;
+        }
+      });
+      if (added > 0) {
+        localStorage.setItem("akmal-members", JSON.stringify(currentMembers));
+        setMembers(currentMembers);
+        toast.success(`${added} new member(s) synced`);
+      } else {
+        toast.success("All users already in members list");
+      }
+    } catch (e) {
+      toast.error("Sync failed");
+    }
+  };
+
+  // Auto-sync on mount for admin
+  useEffect(() => {
+    if (isAdmin) {
+      try {
+        const users = JSON.parse(localStorage.getItem("akmal-users") || "[]");
+        const currentMembers = JSON.parse(localStorage.getItem("akmal-members") || "[]");
+        let changed = false;
+        users.forEach((u: any) => {
+          if (!currentMembers.find((m: Member) => m.email?.toLowerCase() === u.email?.toLowerCase())) {
+            currentMembers.push({
+              id: String(Date.now() + Math.random()),
+              name: u.name,
+              email: u.email,
+              role: "Team Member",
+              avatar: u.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2),
+            });
+            changed = true;
+          }
+        });
+        if (changed) {
+          localStorage.setItem("akmal-members", JSON.stringify(currentMembers));
+          setMembers(currentMembers);
+        }
+      } catch {}
+    }
+  }, [isAdmin]);
 
   const getAvatar = (name: string) => {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
@@ -198,7 +254,12 @@ export default function Members() {
                       <p className="text-sm text-slate-500">{member.role}</p>
                     </div>
                   </div>
-                  {isAdmin && (
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={syncUsersToMembers} className="text-indigo-600 border-indigo-200">
+              <RefreshCw className="w-4 h-4 mr-1" /> Sync Users
+            </Button>
+          )}
+          {isAdmin && (
                     <div className="flex gap-1">
                       <Button size="sm" variant="ghost" className="text-slate-500 hover:text-indigo-600" onClick={() => openEdit(member)}>
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
