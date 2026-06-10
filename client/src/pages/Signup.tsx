@@ -17,7 +17,7 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
       toast.error("Please fill in all fields");
       return;
@@ -36,7 +36,7 @@ export default function Signup() {
       return;
     }
     setLoading(true);
-    const result = signup(name.trim(), email.trim(), password);
+    const result = await signup(name.trim(), email.trim(), password);
     setLoading(false);
     if (result.success) {
       toast.success("Account created successfully!");

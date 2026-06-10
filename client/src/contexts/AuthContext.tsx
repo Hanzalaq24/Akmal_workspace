@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
+
+const API_BASE = "/api";
 
 interface User {
   id: string;
@@ -9,30 +11,12 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAdmin: boolean;
-  login: (email: string, password: string) => { success: boolean; error?: string };
-  signup: (name: string, email: string, password: string) => { success: boolean; error?: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
-
-interface StoredUser {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-}
-
-function getUsers(): StoredUser[] {
-  try {
-    const saved = localStorage.getItem("akmal-users");
-    return saved ? JSON.parse(saved) : [];
-  } catch { return []; }
-}
-
-function saveUsers(users: StoredUser[]) {
-  localStorage.setItem("akmal-users", JSON.stringify(users));
-}
 
 function getCurrentUser(): User | null {
   try {
@@ -49,93 +33,48 @@ function setCurrentUser(user: User | null) {
   }
 }
 
-function addToMembers(name: string, email: string) {
-  try {
-    const saved = localStorage.getItem("akmal-members");
-    const members = saved ? JSON.parse(saved) : [];
-    if (!members.find((m: any) => m.email?.toLowerCase() === email.toLowerCase())) {
-      members.push({
-        id: String(Date.now()),
-        name,
-        email,
-        role: "Team Member",
-        avatar: name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2),
-      });
-      localStorage.setItem("akmal-members", JSON.stringify(members));
-    }
-  } catch {}
-}
-
-function syncUsersToMembers() {
-  try {
-    const users = getUsers();
-    const saved = localStorage.getItem("akmal-members");
-    const members = saved ? JSON.parse(saved) : [];
-    let updated = false;
-    users.forEach((u) => {
-      if (!members.find((m: any) => m.email?.toLowerCase() === u.email.toLowerCase())) {
-        members.push({
-          id: String(Date.now()),
-          name: u.name,
-          email: u.email,
-          role: "Team Member",
-          avatar: u.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2),
-        });
-        updated = true;
-      }
-    });
-    if (updated) {
-      localStorage.setItem("akmal-members", JSON.stringify(members));
-    }
-  } catch {}
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    // Ensure admin is always in members list
-    addToMembers("Akmal", "akmal26426@gmail.com");
-    // Sync all registered users to members list
-    syncUsersToMembers();
-    return getCurrentUser();
-  });
+  const [user, setUser] = useState<User | null>(() => getCurrentUser());
   const isAdmin = user?.email === "akmal26426@gmail.com";
 
-  const login = (email: string, password: string): { success: boolean; error?: string } => {
-    const users = getUsers();
-    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!found) {
-      return { success: false, error: "No account found with this email" };
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`${API_BASE}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const loggedIn: User = { id: String(data.user.id), name: data.user.name, email: data.user.email };
+        setUser(loggedIn);
+        setCurrentUser(loggedIn);
+        return { success: true };
+      }
+      return { success: false, error: data.error || "Login failed" };
+    } catch {
+      return { success: false, error: "Server connection failed" };
     }
-    if (found.password !== password) {
-      return { success: false, error: "Incorrect password" };
-    }
-    addToMembers(found.name, found.email.toLowerCase());
-    const loggedIn: User = { id: found.id, name: found.name, email: found.email };
-    setUser(loggedIn);
-    setCurrentUser(loggedIn);
-    return { success: true };
   };
 
-  const signup = (name: string, email: string, password: string): { success: boolean; error?: string } => {
-    const users = getUsers();
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-      return { success: false, error: "An account with this email already exists" };
+  const signup = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`${API_BASE}/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), email: email.trim().toLowerCase(), password }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const loggedIn: User = { id: String(data.user.id), name: data.user.name, email: data.user.email };
+        setUser(loggedIn);
+        setCurrentUser(loggedIn);
+        return { success: true };
+      }
+      return { success: false, error: data.error || "Signup failed" };
+    } catch {
+      return { success: false, error: "Server connection failed" };
     }
-    const newUser: StoredUser = {
-      id: String(Date.now()),
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      password,
-    };
-    saveUsers([...users, newUser]);
-
-    // Auto-add to members list
-    addToMembers(name.trim(), email.trim().toLowerCase());
-
-    const loggedIn: User = { id: newUser.id, name: newUser.name, email: newUser.email };
-    setUser(loggedIn);
-    setCurrentUser(loggedIn);
-    return { success: true };
   };
 
   const logout = () => {
