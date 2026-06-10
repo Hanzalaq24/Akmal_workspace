@@ -870,42 +870,29 @@ export default function ProjectDetail() {
           {/* Assets Tab */}
           <TabsContent value="assets" className="space-y-6">
             {/* Google Drive Banner */}
-            <Card className="glass rounded-2xl p-4">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${googleDriveConnected ? "bg-green-100" : "bg-slate-100"}`}>
-                    <HardDrive className={`w-5 h-5 ${googleDriveConnected ? "text-green-600" : "text-slate-400"}`} />
+            {googleDriveConnected && (
+              <Card className="glass rounded-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <HardDrive className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900 text-sm">Google Drive Connected</p>
+                      <p className="text-xs text-slate-500">{driveFiles.length} files in Drive</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-slate-900 text-sm">
-                      {googleDriveConnected
-                        ? `Google Drive Connected (${driveFiles.length} files)`
-                        : "Google Drive Not Connected"}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {googleDriveConnected
-                        ? "Uploads go to Drive. Project subfolders auto-created."
-                        : "Connect to auto-upload assets to 5TB Drive"}
-                    </p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={loadDriveFiles}>🔄</Button>
+                    {getDriveUploadLink() && (
+                      <Button size="sm" onClick={() => window.open(getDriveUploadLink(), "_blank")} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                        📁 Open Drive
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  {!googleDriveConnected ? (
-                    <Button size="sm" onClick={handleConnectDrive} disabled={driveConnecting} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
-                      {driveConnecting ? "Connecting..." : "Connect Drive"}
-                    </Button>
-                  ) : (
-                    <>
-                      <Button size="sm" variant="outline" onClick={loadDriveFiles}>🔄</Button>
-                      {getDriveUploadLink() && (
-                        <Button size="sm" variant="outline" onClick={() => window.open(getDriveUploadLink(), "_blank")}>📁 Open</Button>
-                      )}
-                      <Button size="sm" variant="outline" onClick={handleDisconnectDrive} className="text-red-600">Disconnect</Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </Card>
+              </Card>
+            )}
 
             {/* Drive Files */}
             {googleDriveConnected && driveFiles.length > 0 && (
