@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { ArrowRight, BarChart3, Kanban, Users, Zap, FileText, Bell } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { ArrowRight, BarChart3, Kanban, Users, Zap, FileText, Bell, LogIn } from "lucide-react";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-white">
@@ -16,20 +18,27 @@ export default function Landing() {
             </div>
             <h1 className="text-xl font-bold text-slate-900">Akmal Creative Hub</h1>
           </div>
-          <div className="flex gap-3">
-            <Button 
-              onClick={() => setLocation("/services")}
-              variant="outline"
-              className="text-slate-600 border-slate-300 hover:border-indigo-600 hover:text-indigo-600"
-            >
-              💰 Services
-            </Button>
-            <Button 
-              onClick={() => setLocation("/dashboard")}
-              className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-lg hover:shadow-xl transition-all"
-            >
-              Get Started <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+          <div className="flex gap-3 items-center">
+            {user ? (
+              <>
+                <span className="text-sm text-slate-600 hidden sm:inline">{user.name}</span>
+                <Button onClick={() => setLocation("/dashboard")} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                  Dashboard
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => { logout(); setLocation("/"); }}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => setLocation("/login")}>
+                  <LogIn className="w-4 h-4 mr-2" /> Sign In
+                </Button>
+                <Button onClick={() => setLocation("/signup")} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </nav>

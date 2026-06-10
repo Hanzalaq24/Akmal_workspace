@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Plus, Search, Bell, Settings, LogOut, Kanban, LayoutGrid, Activity, TrendingUp, Users, AlertCircle, CheckCircle2, Trash2, Eye, MessageSquare, Paperclip, Zap, DollarSign } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface Task {
@@ -55,6 +56,7 @@ const CHART_COLORS = ["#4f46e5", "#14b8a6", "#f59e0b", "#ef4444", "#8b5cf6", "#0
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
+  const { user, logout } = useAuth();
   const [projects, setProjects] = useState<Project[]>(() => {
     try {
       const saved = localStorage.getItem("akmal-projects");
@@ -218,13 +220,14 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold text-slate-900">Akmal Creative Hub</h1>
           </div>
           <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-600 hidden sm:inline">{user?.name}</span>
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => setLocation("/services")}
               className="text-slate-600 hover:text-indigo-600"
             >
-              💰 Services & Billing
+              💰 Billing
             </Button>
             <Button 
               variant="ghost" 
@@ -241,8 +244,9 @@ export default function Dashboard() {
               <Settings className="w-5 h-5 text-slate-600" />
             </button>
             <button 
-              onClick={() => setLocation("/")}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              onClick={() => { logout(); setLocation("/"); }}
+              className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+              title="Logout"
             >
               <LogOut className="w-5 h-5 text-slate-600" />
             </button>

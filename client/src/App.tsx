@@ -1,7 +1,10 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import { Redirect, Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Dashboard from "./pages/Dashboard";
@@ -11,18 +14,36 @@ import Landing from "./pages/Landing";
 import Services from "./pages/Services";
 import Members from "./pages/Members";
 
+function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>; path?: string }) {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+
+  if (!user) {
+    return <Redirect to="/login" />;
+  }
+  return <Component />;
+}
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Landing} />
-      <Route path={"/dashboard"} component={Dashboard} />
-      <Route path={"/project/:id"} component={ProjectDetail} />
+      <Route path={"/login"} component={Login} />
+      <Route path={"/signup"} component={Signup} />
       <Route path={"/client/:projectId"} component={ClientPortal} />
-      <Route path={"/services"} component={Services} />
-      <Route path={"/members"} component={Members} />
+      <Route path={"/dashboard"}>
+        <ProtectedRoute component={Dashboard} />
+      </Route>
+      <Route path={"/project/:id"}>
+        <ProtectedRoute component={ProjectDetail} />
+      </Route>
+      <Route path={"/services"}>
+        <ProtectedRoute component={Services} />
+      </Route>
+      <Route path={"/members"}>
+        <ProtectedRoute component={Members} />
+      </Route>
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
@@ -32,10 +53,12 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
