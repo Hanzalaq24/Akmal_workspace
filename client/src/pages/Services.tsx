@@ -94,7 +94,7 @@ const calculateGST = (subtotal: number, gstPercentage: number) => {
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">🎯 Akmal Hub Pro</div>
+          <div class="logo">🎯 Akmal Creative Hub</div>
           <div class="invoice-title">
             <h1>${invoice.id}</h1>
             <p>Invoice</p>
@@ -165,7 +165,7 @@ const calculateGST = (subtotal: number, gstPercentage: number) => {
         ` : ''}
 
         <div class="footer">
-          <p>Thank you for your business! | Akmal Hub Pro | Generated on ${new Date().toLocaleDateString('en-IN')}</p>
+          <p>Thank you for your business! | Akmal Creative Hub | Generated on ${new Date().toLocaleDateString('en-IN')}</p>
         </div>
       </div>
     </body>
