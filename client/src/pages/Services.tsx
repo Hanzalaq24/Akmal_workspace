@@ -174,13 +174,13 @@ const calculateGST = (subtotal: number, gstPercentage: number) => {
 
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${invoice.id}_invoice.html`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  const printWindow = window.open(url, '_blank');
+  if (printWindow) {
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 };
 
 export default function Services() {

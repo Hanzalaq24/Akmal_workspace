@@ -176,6 +176,12 @@ export default function Dashboard() {
   const pendingTasks = projects.reduce((sum, p) => sum + p.tasks.filter(t => t.status === "todo").length, 0);
   const teamCount = new Set(projects.flatMap(p => p.team)).size;
 
+  const formatCurrency = (amount: number) => {
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+    if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}k`;
+    return `₹${amount}`;
+  };
+
   // Compute analytics data from projects
   const analyticsData = [
     { name: "Completed", value: completedTasks, fill: "#10b981" },
@@ -563,7 +569,7 @@ export default function Dashboard() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-slate-600">Budget</p>
-                        <p className="font-semibold text-slate-900">₹{(project.spent / 1000).toFixed(0)}k / {(project.budget / 1000).toFixed(0)}k</p>
+                        <p className="font-semibold text-slate-900">{formatCurrency(project.spent)} / {formatCurrency(project.budget)}</p>
                       </div>
                       <div>
                         <p className="text-slate-600">Tasks</p>

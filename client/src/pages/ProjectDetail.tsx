@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Trash2, MessageSquare, Paperclip, Calendar, User, DollarSign, Flag, CheckCircle2, Circle, AlertCircle, Download, Upload, Share2, MoreVertical, Zap, Layers } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, MessageSquare, Paperclip, Calendar, User, DollarSign, Flag, CheckCircle2, Circle, AlertCircle, Download, Upload, Share2, MoreVertical, Zap, Layers, FileText, Link2, X } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 
@@ -59,6 +59,9 @@ export default function ProjectDetail() {
   const [newComment, setNewComment] = useState("");
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddPhase, setShowAddPhase] = useState(false);
+  const [showAssetUpload, setShowAssetUpload] = useState(false);
+  const [uploadMode, setUploadMode] = useState<"local" | "drive">("local");
+  const [driveLink, setDriveLink] = useState("");
 
   // New task form state
   const [newTask, setNewTask] = useState({
@@ -198,6 +201,112 @@ export default function ProjectDetail() {
     toast.success("Phase deleted");
   };
 
+  const handleTaskStatusToggle = (taskId: string, phaseId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    let newStatus: "todo" | "in-progress" | "completed" = "todo";
+    const updatedPhases = project.phases.map((p: any) => {
+      if (p.id === phaseId) {
+        return {
+          ...p,
+          tasks: p.tasks.map((t: Task) => {
+            if (t.id === taskId) {
+              newStatus = t.status === "todo" ? "in-progress" : t.status === "in-progress" ? "completed" : "todo";
+              return { ...t, status: newStatus };
+            }
+            return t;
+          }),
+        };
+      }
+      return p;
+    });
+    
+    // Recalculate progress
+    let allTasks: Task[] = [];
+    updatedPhases.forEach((p: any) => { allTasks = allTasks.concat(p.tasks); });
+    const completedCount = allTasks.filter(t => t.status === "completed").length;
+    const newProgress = allTasks.length > 0 ? Math.round((completedCount / allTasks.length) * 100) : 0;
+    
+    // Auto-generate invoice when project reaches 100%
+    let updated = { ...project, phases: updatedPhases, progress: newProgress };
+    if (newProgress === 100 && project.status !== "completed") {
+      updated.status = "completed";
+      // Auto-create invoice
+      const invoice = {
+        id: `INV-${String(Date.now()).slice(-6)}`,
+        projectName: project.name,
+        clientName: project.client,
+        date: new Date().toISOString().split("T")[0],
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        items: [{ id: "1", name: `${project.name} - Complete Project`, quantity: 1, unitPrice: project.budget, total: project.budget }],
+        subtotal: project.budget,
+        gstPercentage: 18,
+        gstAmount: Math.round(project.budget * 0.18),
+        total: project.budget + Math.round(project.budget * 0.18),
+        status: "sent",
+        notes: "Auto-generated upon project completion",
+      };
+      try {
+        const savedInvoices = JSON.parse(localStorage.getItem("akmal-invoices") || "[]");
+        savedInvoices.unshift(invoice);
+        localStorage.setItem("akmal-invoices", JSON.stringify(savedInvoices));
+      } catch {}
+      toast.success("Project completed! Invoice auto-generated.");
+    } else {
+      toast.success(`Task marked ${newStatus.replace("-", " ")}`);
+    }
+    
+    setProject(updated);
+    saveProjectToStorage(updated);
+  };
+
+  const handleAssetUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const asset: Asset = {
+      id: String(Date.now()),
+      name: file.name,
+      type: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "document",
+      size: file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`,
+      uploadedBy: "You",
+      uploadedAt: new Date().toISOString().split("T")[0],
+      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : file.type.startsWith("video/") ? "🎬" : "📄",
+    };
+    const updated = { ...project, assets: [...project.assets, asset] };
+    setProject(updated);
+    saveProjectToStorage({ ...updated });
+    setShowAssetUpload(false);
+    toast.success("Asset uploaded");
+  };
+
+  const handleDriveLinkUpload = () => {
+    if (!driveLink.trim()) {
+      toast.error("Please enter a Google Drive link");
+      return;
+    }
+    const asset: Asset = {
+      id: String(Date.now()),
+      name: `Drive File - ${driveLink.slice(0, 30)}...`,
+      type: "document" as const,
+      size: "N/A",
+      uploadedBy: "Google Drive",
+      uploadedAt: new Date().toISOString().split("T")[0],
+      preview: "🔗",
+    };
+    const updated = { ...project, assets: [...project.assets, { ...asset, link: driveLink }] };
+    setProject(updated);
+    saveProjectToStorage({ ...updated });
+    setDriveLink("");
+    setShowAssetUpload(false);
+    toast.success("Google Drive link added");
+  };
+
+  // Format currency (handle amounts less than 1000 properly)
+  const formatCurrency = (amount: number) => {
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+    if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}k`;
+    return `₹${amount}`;
+  };
+
   const formatDeadline = (dateStr: string) => {
     if (!dateStr) return "Not set";
     const date = new Date(dateStr);
@@ -302,7 +411,7 @@ export default function ProjectDetail() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-slate-600 uppercase font-semibold">Budget</p>
-                <p className="text-lg font-bold text-slate-900 mt-1">₹{(project.spent / 1000).toFixed(0)}k / {(project.budget / 1000).toFixed(0)}k</p>
+                <p className="text-lg font-bold text-slate-900 mt-1">{formatCurrency(project.spent)} / {formatCurrency(project.budget)}</p>
               </div>
               <DollarSign className="w-6 h-6 text-orange-600/20" />
             </div>
@@ -551,14 +660,20 @@ export default function ProjectDetail() {
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
-                                {task.status === "completed" ? (
-                                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                                ) : task.status === "in-progress" ? (
-                                  <Circle className="w-5 h-5 text-orange-600" />
-                                ) : (
-                                  <Circle className="w-5 h-5 text-slate-400" />
-                                )}
-                                <h4 className="font-semibold text-slate-900">{task.title}</h4>
+                                <button
+                                  onClick={(e) => handleTaskStatusToggle(task.id, phase.id, e)}
+                                  className="hover:scale-110 transition-transform cursor-pointer"
+                                  title={`Status: ${task.status}. Click to change.`}
+                                >
+                                  {task.status === "completed" ? (
+                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                  ) : task.status === "in-progress" ? (
+                                    <Circle className="w-5 h-5 text-orange-600 fill-orange-600" />
+                                  ) : (
+                                    <Circle className="w-5 h-5 text-slate-400" />
+                                  )}
+                                </button>
+                                <h4 className={`font-semibold text-slate-900 ${task.status === "completed" ? "line-through text-slate-500" : ""}`}>{task.title}</h4>
                               </div>
                               <p className="text-sm text-slate-600 ml-8">{task.description}</p>
                             </div>
@@ -614,34 +729,127 @@ export default function ProjectDetail() {
           <TabsContent value="assets" className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-slate-900">Project Assets</h3>
-              <Button className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
-                <Upload className="w-4 h-4 mr-2" /> Upload Asset
-              </Button>
+              <Dialog open={showAssetUpload} onOpenChange={setShowAssetUpload}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                    <Upload className="w-4 h-4 mr-2" /> Upload Asset
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="glass sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Upload Asset</DialogTitle>
+                    <DialogDescription>Choose upload method</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Button
+                        variant={uploadMode === "local" ? "default" : "outline"}
+                        className={`flex-1 ${uploadMode === "local" ? "bg-indigo-600 text-white" : ""}`}
+                        onClick={() => setUploadMode("local")}
+                      >
+                        <Upload className="w-4 h-4 mr-2" /> Local Device
+                      </Button>
+                      <Button
+                        variant={uploadMode === "drive" ? "default" : "outline"}
+                        className={`flex-1 ${uploadMode === "drive" ? "bg-indigo-600 text-white" : ""}`}
+                        onClick={() => setUploadMode("drive")}
+                      >
+                        <Link2 className="w-4 h-4 mr-2" /> Google Drive
+                      </Button>
+                    </div>
+
+                    {uploadMode === "local" ? (
+                      <div className="space-y-4">
+                        <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-indigo-400 transition-colors cursor-pointer">
+                          <label className="cursor-pointer">
+                            <Upload className="w-10 h-10 mx-auto mb-3 text-slate-400" />
+                            <p className="text-sm font-medium text-slate-600">Click to browse files</p>
+                            <p className="text-xs text-slate-400 mt-1">All file types supported, no quality loss</p>
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={handleAssetUpload}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="driveLink">Google Drive Share Link</Label>
+                          <Input
+                            id="driveLink"
+                            placeholder="https://drive.google.com/file/d/..."
+                            className="glass-sm"
+                            value={driveLink}
+                            onChange={(e) => setDriveLink(e.target.value)}
+                          />
+                          <p className="text-xs text-slate-400">Paste a shareable Google Drive link</p>
+                        </div>
+                        <Button onClick={handleDriveLinkUpload} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                          <Link2 className="w-4 h-4 mr-2" /> Add Drive Link
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {project.assets.map((asset: any) => (
-                <Card key={asset.id} className="glass rounded-xl p-4 hover-lift">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="text-3xl">{asset.preview}</div>
-                    <Button size="sm" variant="ghost">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <h4 className="font-semibold text-slate-900 text-sm">{asset.name}</h4>
-                  <p className="text-xs text-slate-600 mt-1">{asset.size}</p>
-                  <p className="text-xs text-slate-600">by {asset.uploadedBy}</p>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="w-full mt-3"
-                    onClick={() => handleDownloadAsset(asset.name)}
-                  >
-                    <Download className="w-3 h-3 mr-1" /> Download
-                  </Button>
-                </Card>
-              ))}
-            </div>
+            {project.assets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                <FileText className="w-12 h-12 mb-3 opacity-20" />
+                <p className="text-sm font-medium text-slate-500">No assets uploaded</p>
+                <p className="text-xs mt-1">Upload files from your device or add Google Drive links.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {project.assets.map((asset: any) => (
+                  <Card key={asset.id} className="glass rounded-xl p-4 hover-lift">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="text-3xl">
+                        {asset.preview?.startsWith("http") ? (
+                          <img src={asset.preview} alt={asset.name} className="w-12 h-12 object-cover rounded" />
+                        ) : (
+                          asset.preview || "📄"
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-400 hover:text-red-600"
+                        onClick={() => {
+                          const updated = { ...project, assets: project.assets.filter((a: any) => a.id !== asset.id) };
+                          setProject(updated);
+                          saveProjectToStorage({ ...updated });
+                          toast.success("Asset removed");
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <h4 className="font-semibold text-slate-900 text-sm truncate">{asset.name}</h4>
+                    <p className="text-xs text-slate-600 mt-1">{asset.size}</p>
+                    <p className="text-xs text-slate-600">by {asset.uploadedBy}</p>
+                    <div className="flex gap-2 mt-3">
+                      {asset.link ? (
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => window.open(asset.link, "_blank")}>
+                          <Link2 className="w-3 h-3 mr-1" /> Open in Drive
+                        </Button>
+                      ) : asset.preview?.startsWith("http") ? (
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => window.open(asset.preview, "_blank")}>
+                          <Download className="w-3 h-3 mr-1" /> View
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => handleDownloadAsset(asset.name)}>
+                          <Download className="w-3 h-3 mr-1" /> Download
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Team Tab */}
