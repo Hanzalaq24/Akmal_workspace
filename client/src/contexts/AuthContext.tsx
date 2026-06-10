@@ -66,10 +66,36 @@ function addToMembers(name: string, email: string) {
   } catch {}
 }
 
+function syncUsersToMembers() {
+  try {
+    const users = getUsers();
+    const saved = localStorage.getItem("akmal-members");
+    const members = saved ? JSON.parse(saved) : [];
+    let updated = false;
+    users.forEach((u) => {
+      if (!members.find((m: any) => m.email?.toLowerCase() === u.email.toLowerCase())) {
+        members.push({
+          id: String(Date.now()),
+          name: u.name,
+          email: u.email,
+          role: "Team Member",
+          avatar: u.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2),
+        });
+        updated = true;
+      }
+    });
+    if (updated) {
+      localStorage.setItem("akmal-members", JSON.stringify(members));
+    }
+  } catch {}
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     // Ensure admin is always in members list
     addToMembers("Hanzala", "hanzalaq63@gmail.com");
+    // Sync all registered users to members list
+    syncUsersToMembers();
     return getCurrentUser();
   });
   const isAdmin = user?.email === "hanzalaq63@gmail.com";
