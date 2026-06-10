@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Trash2, MessageSquare, MessagesSquare, Paperclip, Calendar, User, DollarSign, Flag, CheckCircle2, Circle, AlertCircle, Download, Upload, Share2, MoreVertical, Zap, Layers, FileText, Link2, X, Send } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, MessageSquare, MessagesSquare, Paperclip, Calendar, User, DollarSign, Flag, CheckCircle2, Circle, AlertCircle, Download, Upload, Share2, MoreVertical, Zap, Layers, FileText, Link2, X, Send, HardDrive } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
+import { isGoogleConnected, connectGoogleDrive, clearGoogleToken, uploadToDrive, listDriveFiles, deleteDriveFile, setGoogleClientId, getGoogleClientId } from "@/lib/googleDrive";
 
 interface Task {
   id: string;
@@ -63,6 +64,11 @@ export default function ProjectDetail() {
   const [showAssetUpload, setShowAssetUpload] = useState(false);
   const [uploadMode, setUploadMode] = useState<"local" | "drive">("local");
   const [driveLink, setDriveLink] = useState("");
+  const [googleDriveConnected, setGoogleDriveConnected] = useState(isGoogleConnected());
+  const [googleConnecting, setGoogleConnecting] = useState(false);
+  const [driveFiles, setDriveFiles] = useState<any[]>([]);
+  const [showDriveSettings, setShowDriveSettings] = useState(false);
+  const [driveClientId, setDriveClientId] = useState(getGoogleClientId());
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [pendingCompletePhases, setPendingCompletePhases] = useState<any>(null);
   const [showTeamChat, setShowTeamChat] = useState(false);
@@ -349,25 +355,6 @@ export default function ProjectDetail() {
     toast.success("Task marked completed");
   };
 
-  const handleAssetUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const asset: Asset = {
-      id: String(Date.now()),
-      name: file.name,
-      type: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "document",
-      size: file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`,
-      uploadedBy: "You",
-      uploadedAt: new Date().toISOString().split("T")[0],
-      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : file.type.startsWith("video/") ? "🎬" : "📄",
-    };
-    const updated = { ...project, assets: [...project.assets, asset] };
-    setProject(updated);
-    saveProjectToStorage({ ...updated });
-    setShowAssetUpload(false);
-    toast.success("Asset uploaded");
-  };
-
   const handleDriveLinkUpload = () => {
     if (!driveLink.trim()) {
       toast.error("Please enter a Google Drive link");
@@ -388,6 +375,81 @@ export default function ProjectDetail() {
     setDriveLink("");
     setShowAssetUpload(false);
     toast.success("Google Drive link added");
+  };
+
+  const handleConnectDrive = async () => {
+    setGoogleConnecting(true);
+    const result = await connectGoogleDrive();
+    setGoogleConnecting(false);
+    if (result.success) {
+      setGoogleDriveConnected(true);
+      toast.success("Google Drive connected!");
+      loadDriveFiles();
+    } else {
+      toast.error(result.error || "Failed to connect Google Drive");
+      if (result.error?.includes("Client ID")) {
+        setShowDriveSettings(true);
+      }
+    }
+  };
+
+  const handleDisconnectDrive = () => {
+    clearGoogleToken();
+    setGoogleDriveConnected(false);
+    setDriveFiles([]);
+    toast.success("Google Drive disconnected");
+  };
+
+  const loadDriveFiles = async () => {
+    if (!isGoogleConnected()) return;
+    const files = await listDriveFiles();
+    setDriveFiles(files);
+  };
+
+  const handleSaveClientId = () => {
+    if (!driveClientId.trim()) {
+      toast.error("Please enter a Client ID");
+      return;
+    }
+    setGoogleClientId(driveClientId.trim());
+    setShowDriveSettings(false);
+    toast.success("Client ID saved");
+  };
+
+  // Load Drive files on mount
+  useEffect(() => {
+    loadDriveFiles();
+  }, []);
+
+  const handleDriveUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (googleDriveConnected) {
+      const result = await uploadToDrive(file);
+      if (result.success) {
+        toast.success("Uploaded to Google Drive");
+        loadDriveFiles();
+      } else {
+        toast.error(result.error || "Drive upload failed");
+      }
+    } else {
+      // Local upload fallback
+      const asset: Asset = {
+        id: String(Date.now()),
+        name: file.name,
+        type: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "document",
+        size: file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`,
+        uploadedBy: "You",
+        uploadedAt: new Date().toISOString().split("T")[0],
+        preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : file.type.startsWith("video/") ? "🎬" : "📄",
+      };
+      const updated = { ...project, assets: [...project.assets, asset] };
+      setProject(updated);
+      saveProjectToStorage({ ...updated });
+      toast.success("Asset uploaded");
+    }
+    setShowAssetUpload(false);
   };
 
   // Format currency (handle amounts less than 1000 properly)
@@ -821,8 +883,83 @@ export default function ProjectDetail() {
 
           {/* Assets Tab */}
           <TabsContent value="assets" className="space-y-6">
+            {/* Google Drive Integration Banner */}
+            <Card className="glass rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${googleDriveConnected ? "bg-green-100" : "bg-slate-100"}`}>
+                    <HardDrive className={`w-5 h-5 ${googleDriveConnected ? "text-green-600" : "text-slate-400"}`} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900 text-sm">
+                      {googleDriveConnected ? "Google Drive Connected" : "Google Drive Not Connected"}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {googleDriveConnected
+                        ? "Assets are automatically backed up to Google Drive"
+                        : "Connect to store assets in Google Drive"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {!googleDriveConnected ? (
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => setShowDriveSettings(true)}>
+                        ⚙️
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleConnectDrive}
+                        disabled={googleConnecting}
+                        className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white"
+                      >
+                        {googleConnecting ? "Connecting..." : "Connect Drive"}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="outline" onClick={loadDriveFiles}>
+                        🔄 Refresh
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={handleDisconnectDrive} className="text-red-600 hover:text-red-700">
+                        Disconnect
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {/* Drive Settings Dialog */}
+            <Dialog open={showDriveSettings} onOpenChange={setShowDriveSettings}>
+              <DialogContent className="glass sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Google Drive Settings</DialogTitle>
+                  <DialogDescription>
+                    Enter your Google Cloud OAuth 2.0 Client ID.{" "}
+                    <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-600 underline">Get one here</a>
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="clientId">Client ID</Label>
+                    <Input
+                      id="clientId"
+                      placeholder="123456789-xxxxx.apps.googleusercontent.com"
+                      className="glass-sm"
+                      value={driveClientId}
+                      onChange={(e) => setDriveClientId(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleSaveClientId} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                    Save & Connect
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-slate-900">Project Assets</h3>
+              <h3 className="text-lg font-semibold text-slate-900">Assets</h3>
               <Dialog open={showAssetUpload} onOpenChange={setShowAssetUpload}>
                 <DialogTrigger asChild>
                   <Button className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
@@ -832,7 +969,9 @@ export default function ProjectDetail() {
                 <DialogContent className="glass sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Upload Asset</DialogTitle>
-                    <DialogDescription>Choose upload method</DialogDescription>
+                    <DialogDescription>
+                      {googleDriveConnected ? "Files will be uploaded to your Google Drive" : "Choose upload method"}
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="flex gap-2">
@@ -848,7 +987,7 @@ export default function ProjectDetail() {
                         className={`flex-1 ${uploadMode === "drive" ? "bg-indigo-600 text-white" : ""}`}
                         onClick={() => setUploadMode("drive")}
                       >
-                        <Link2 className="w-4 h-4 mr-2" /> Google Drive
+                        <Link2 className="w-4 h-4 mr-2" /> Drive Link
                       </Button>
                     </div>
 
@@ -858,11 +997,13 @@ export default function ProjectDetail() {
                           <label className="cursor-pointer">
                             <Upload className="w-10 h-10 mx-auto mb-3 text-slate-400" />
                             <p className="text-sm font-medium text-slate-600">Click to browse files</p>
-                            <p className="text-xs text-slate-400 mt-1">All file types supported, no quality loss</p>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {googleDriveConnected ? "Auto-uploads to Google Drive" : "All file types supported, no quality loss"}
+                            </p>
                             <input
                               type="file"
                               className="hidden"
-                              onChange={handleAssetUpload}
+                              onChange={handleDriveUpload}
                             />
                           </label>
                         </div>
@@ -878,7 +1019,6 @@ export default function ProjectDetail() {
                             value={driveLink}
                             onChange={(e) => setDriveLink(e.target.value)}
                           />
-                          <p className="text-xs text-slate-400">Paste a shareable Google Drive link</p>
                         </div>
                         <Button onClick={handleDriveLinkUpload} className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
                           <Link2 className="w-4 h-4 mr-2" /> Add Drive Link
@@ -890,11 +1030,47 @@ export default function ProjectDetail() {
               </Dialog>
             </div>
 
-            {project.assets.length === 0 ? (
+            {/* Google Drive Files */}
+            {googleDriveConnected && driveFiles.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-slate-600 mb-3 flex items-center gap-2">
+                  <HardDrive className="w-4 h-4" /> Google Drive Files
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  {driveFiles.map((file: any) => (
+                    <Card key={file.id} className="glass rounded-xl p-4 hover-lift border-green-200">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="text-3xl">📄</div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-400 hover:text-red-600"
+                          onClick={async () => {
+                            const ok = await deleteDriveFile(file.id);
+                            if (ok) { loadDriveFiles(); toast.success("File deleted from Drive"); }
+                            else toast.error("Failed to delete");
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <h4 className="font-semibold text-slate-900 text-sm truncate">{file.name}</h4>
+                      <p className="text-xs text-slate-600 mt-1">{file.size}</p>
+                      <Button size="sm" variant="outline" className="w-full mt-3" onClick={() => window.open(file.webViewLink, "_blank")}>
+                        <HardDrive className="w-3 h-3 mr-1" /> Open in Drive
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Local Assets / Empty State */}
+            {project.assets.length === 0 && driveFiles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-400">
                 <FileText className="w-12 h-12 mb-3 opacity-20" />
                 <p className="text-sm font-medium text-slate-500">No assets uploaded</p>
-                <p className="text-xs mt-1">Upload files from your device or add Google Drive links.</p>
+                <p className="text-xs mt-1">Upload files or connect Google Drive.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
