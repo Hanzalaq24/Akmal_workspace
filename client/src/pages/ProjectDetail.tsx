@@ -312,7 +312,7 @@ export default function ProjectDetail() {
       gstPercentage: 18,
       gstAmount: Math.round(project.budget * 0.18),
       total: project.budget + Math.round(project.budget * 0.18),
-      status: "sent",
+      status: "draft",
       notes: "Auto-generated upon project completion",
     };
     try {
