@@ -240,7 +240,10 @@ export default function Dashboard() {
             <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
               <Bell className="w-5 h-5 text-slate-600" />
             </button>
-            <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => setLocation("/settings")}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
               <Settings className="w-5 h-5 text-slate-600" />
             </button>
             <button 

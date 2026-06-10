@@ -13,6 +13,7 @@ import ClientPortal from "./pages/ClientPortal";
 import Landing from "./pages/Landing";
 import Services from "./pages/Services";
 import Members from "./pages/Members";
+import SettingsPage from "./pages/Settings";
 
 function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>; path?: string }) {
   const { user } = useAuth();
@@ -42,6 +43,9 @@ function Router() {
       </Route>
       <Route path={"/members"}>
         <ProtectedRoute component={Members} />
+      </Route>
+      <Route path={"/settings"}>
+        <ProtectedRoute component={SettingsPage} />
       </Route>
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
