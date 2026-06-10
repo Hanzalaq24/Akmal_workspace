@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,6 +63,8 @@ export default function ProjectDetail() {
   const [showAssetUpload, setShowAssetUpload] = useState(false);
   const [uploadMode, setUploadMode] = useState<"local" | "drive">("local");
   const [driveLink, setDriveLink] = useState("");
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [pendingCompletePhases, setPendingCompletePhases] = useState<any>(null);
 
   // New task form state
   const [newTask, setNewTask] = useState({
@@ -220,43 +223,67 @@ export default function ProjectDetail() {
       return p;
     });
     
-    // Recalculate progress
     let allTasks: Task[] = [];
     updatedPhases.forEach((p: any) => { allTasks = allTasks.concat(p.tasks); });
     const completedCount = allTasks.filter(t => t.status === "completed").length;
     const newProgress = allTasks.length > 0 ? Math.round((completedCount / allTasks.length) * 100) : 0;
+    const allCompleted = allTasks.length > 0 && completedCount === allTasks.length;
     
-    // Auto-generate invoice when project reaches 100%
     let updated = { ...project, phases: updatedPhases, progress: newProgress };
-    if (newProgress === 100 && project.status !== "completed") {
-      updated.status = "completed";
-      // Auto-create invoice
-      const invoice = {
-        id: `INV-${String(Date.now()).slice(-6)}`,
-        projectName: project.name,
-        clientName: project.client,
-        date: new Date().toISOString().split("T")[0],
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        items: [{ id: "1", name: `${project.name} - Complete Project`, quantity: 1, unitPrice: project.budget, total: project.budget }],
-        subtotal: project.budget,
-        gstPercentage: 18,
-        gstAmount: Math.round(project.budget * 0.18),
-        total: project.budget + Math.round(project.budget * 0.18),
-        status: "sent",
-        notes: "Auto-generated upon project completion",
-      };
-      try {
-        const savedInvoices = JSON.parse(localStorage.getItem("akmal-invoices") || "[]");
-        savedInvoices.unshift(invoice);
-        localStorage.setItem("akmal-invoices", JSON.stringify(savedInvoices));
-      } catch {}
-      toast.success("Project completed! Invoice auto-generated.");
+    
+    if (allCompleted && project.status !== "completed") {
+      // Store pending state and show confirmation
+      setPendingCompletePhases(updatedPhases);
+      setShowCompleteConfirm(true);
     } else {
+      setProject(updated);
+      saveProjectToStorage(updated);
       toast.success(`Task marked ${newStatus.replace("-", " ")}`);
     }
+  };
+
+  const handleConfirmComplete = () => {
+    const updatedPhases = pendingCompletePhases;
+    let allTasks: Task[] = [];
+    updatedPhases.forEach((p: any) => { allTasks = allTasks.concat(p.tasks); });
+    const newProgress = 100;
     
+    const invoice = {
+      id: `INV-${String(Date.now()).slice(-6)}`,
+      projectName: project.name,
+      clientName: project.client,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      items: [{ id: "1", name: `${project.name} - Complete Project`, quantity: 1, unitPrice: project.budget, total: project.budget }],
+      subtotal: project.budget,
+      gstPercentage: 18,
+      gstAmount: Math.round(project.budget * 0.18),
+      total: project.budget + Math.round(project.budget * 0.18),
+      status: "sent",
+      notes: "Auto-generated upon project completion",
+    };
+    try {
+      const savedInvoices = JSON.parse(localStorage.getItem("akmal-invoices") || "[]");
+      savedInvoices.unshift(invoice);
+      localStorage.setItem("akmal-invoices", JSON.stringify(savedInvoices));
+    } catch {}
+    
+    const updated = { ...project, phases: updatedPhases, progress: newProgress, status: "completed" };
     setProject(updated);
     saveProjectToStorage(updated);
+    setShowCompleteConfirm(false);
+    setPendingCompletePhases(null);
+    toast.success("Project completed! Invoice generated.");
+  };
+
+  const handleCancelComplete = () => {
+    // Still update the task status but don't mark project complete
+    const updated = { ...project, phases: pendingCompletePhases, progress: 99 };
+    setProject(updated);
+    saveProjectToStorage(updated);
+    setShowCompleteConfirm(false);
+    setPendingCompletePhases(null);
+    toast.success("Task marked completed");
   };
 
   const handleAssetUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -976,6 +1003,24 @@ export default function ProjectDetail() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Complete Project Confirmation Dialog */}
+      <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
+        <AlertDialogContent className="glass">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Complete Project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              All tasks are completed! Would you like to mark <strong>{project.name}</strong> as completed and generate a bill?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelComplete}>Not Yet</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmComplete} className="bg-gradient-to-r from-indigo-600 to-indigo-700">
+              Yes, Complete Project
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
