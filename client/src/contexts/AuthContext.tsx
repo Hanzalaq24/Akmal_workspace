@@ -67,7 +67,11 @@ function addToMembers(name: string, email: string) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => getCurrentUser());
+  const [user, setUser] = useState<User | null>(() => {
+    // Ensure admin is always in members list
+    addToMembers("Hanzala", "hanzalaq63@gmail.com");
+    return getCurrentUser();
+  });
   const isAdmin = user?.email === "hanzalaq63@gmail.com";
 
   const login = (email: string, password: string): { success: boolean; error?: string } => {
