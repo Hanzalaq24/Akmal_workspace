@@ -8,11 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Trash2, MessageSquare, MessagesSquare, Paperclip, Calendar, User, DollarSign, Flag, CheckCircle2, Circle, AlertCircle, Download, Upload, Share2, MoreVertical, Zap, Layers, FileText, Link2, X, Send, HardDrive } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, MessageSquare, MessagesSquare, Paperclip, Calendar, User, DollarSign, Flag, CheckCircle2, Circle, AlertCircle, Download, Upload, Share2, MoreVertical, Zap, Layers, FileText, Link2, X, Send, HardDrive, Save } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { isDriveConfigured, getDriveUploadLink, clearDriveConfig } from "@/lib/googleDrive";
+import { isDriveConfigured, getDriveUploadLink, clearDriveConfig, getDriveFolderLink } from "@/lib/googleDrive";
 
 interface Task {
   id: string;
@@ -68,6 +68,8 @@ export default function ProjectDetail() {
   const [driveLink, setDriveLink] = useState("");
   const [googleDriveConnected, setGoogleDriveConnected] = useState(isDriveConfigured());
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [showProjectDriveDialog, setShowProjectDriveDialog] = useState(false);
+  const [projectDriveLink, setProjectDriveLink] = useState("");
   const [pendingCompletePhases, setPendingCompletePhases] = useState<any>(null);
   const [showTeamChat, setShowTeamChat] = useState(false);
   const [teamChatInput, setTeamChatInput] = useState("");
@@ -176,6 +178,7 @@ export default function ProjectDetail() {
     phases: (found.phases || []) as { id: string; name: string; tasks: Task[] }[],
     assets: (found.assets || []) as Asset[],
     activity: (found.activity || []) as { id: string; action: string; user: string; time: string; icon: string }[],
+    driveFolderLink: found.driveFolderLink || undefined,
   });
 
   const [project, setProject] = useState<any | null>(() => {
@@ -188,6 +191,8 @@ export default function ProjectDetail() {
     ? allMembers
     : (allMembers.length > 0 ? allMembers.filter((m: any) => (project?.team || []).some((t: any) => typeof t === "string" ? t === m.name : t.name === m.name)) : (project?.team || []));
 
+  const effectiveDriveLink = (project as any)?.driveFolderLink || getDriveFolderLink();
+
   // Sync project changes back to localStorage
   const saveProjectToStorage = (updatedProject: any) => {
     try {
@@ -195,9 +200,7 @@ export default function ProjectDetail() {
       if (idx !== -1) {
         savedProjects[idx] = {
           ...savedProjects[idx],
-          phases: updatedProject.phases,
-          progress: updatedProject.progress,
-          spent: updatedProject.spent,
+          ...updatedProject,
         };
         localStorage.setItem("akmal-projects", JSON.stringify(savedProjects));
       }
@@ -848,40 +851,107 @@ export default function ProjectDetail() {
           <TabsContent value="assets" className="space-y-6">
             {/* Google Drive Integration Banner */}
             <Card className="glass rounded-2xl p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${googleDriveConnected ? "bg-green-100" : "bg-slate-100"}`}>
                     <HardDrive className={`w-5 h-5 ${googleDriveConnected ? "text-green-600" : "text-slate-400"}`} />
                   </div>
                   <div>
                     <p className="font-medium text-slate-900 text-sm">
-                      {googleDriveConnected ? "Google Drive Connected" : "Google Drive Not Configured"}
+                      {googleDriveConnected
+                        ? (project as any)?.driveFolderLink
+                          ? `Project Drive: ${project.name}`
+                          : "Google Drive Connected"
+                        : "Google Drive Not Configured"}
                     </p>
                     <p className="text-xs text-slate-500">
                       {googleDriveConnected
-                        ? "Click 'Open Drive' to view and manage assets"
-                        : "Go to Settings to connect a shared Drive folder"}
+                        ? "Click 'Open Drive' to manage files"
+                        : "Go to Settings to connect"}
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {!googleDriveConnected ? (
+                  {googleDriveConnected ? (
+                    <>
+                      <Button size="sm" onClick={() => {
+                        setProjectDriveLink((project as any)?.driveFolderLink || "");
+                        setShowProjectDriveDialog(true);
+                      }} variant="outline">
+                        {(project as any)?.driveFolderLink ? "Change Folder" : "Set Project Folder"}
+                      </Button>
+                      <Button size="sm" onClick={() => window.open(effectiveDriveLink, "_blank")} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                        📁 Open Drive
+                      </Button>
+                    </>
+                  ) : (
                     <Button size="sm" onClick={() => setLocation("/settings")} variant="outline" className="text-indigo-600">
                       ⚙️ Settings
                     </Button>
-                  ) : (
-                    <>
-                      <Button size="sm" onClick={() => window.open(getDriveUploadLink(), "_blank")} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
-                        📁 Open Drive
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={handleDisconnectDrive} className="text-red-600 hover:text-red-700">
-                        Disconnect
-                      </Button>
-                    </>
                   )}
                 </div>
               </div>
             </Card>
+
+            {/* Project Drive Folder Dialog */}
+            <Dialog open={showProjectDriveDialog} onOpenChange={setShowProjectDriveDialog}>
+              <DialogContent className="glass sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Project Drive Folder</DialogTitle>
+                  <DialogDescription>
+                    Set a dedicated Google Drive folder for <strong>{project.name}</strong>. 
+                    This overrides the global Drive folder for this project only.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="projDriveLink">Drive Folder Link</Label>
+                    <Input
+                      id="projDriveLink"
+                      placeholder="https://drive.google.com/drive/folders/..."
+                      className="glass-sm"
+                      value={projectDriveLink}
+                      onChange={(e) => setProjectDriveLink(e.target.value)}
+                    />
+                    <p className="text-xs text-slate-400">
+                      Create a folder named <strong>"{project.name}"</strong> inside the main Drive folder → Share → Copy link → Paste here.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        const updated = { ...project, driveFolderLink: projectDriveLink.trim() || undefined };
+                        if (!projectDriveLink.trim()) delete updated.driveFolderLink;
+                        setProject(updated);
+                        saveProjectToStorage(updated);
+                        setShowProjectDriveDialog(false);
+                        toast.success(projectDriveLink.trim() ? "Project Drive folder set!" : "Using global Drive folder");
+                      }}
+                      className="flex-1 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white"
+                    >
+                      <Save className="w-4 h-4 mr-2" /> Save
+                    </Button>
+                    {(project as any)?.driveFolderLink && (
+                      <Button
+                        variant="outline"
+                        className="text-red-600"
+                        onClick={() => {
+                          const updated = { ...project };
+                          delete updated.driveFolderLink;
+                          setProject(updated);
+                          saveProjectToStorage(updated);
+                          setShowProjectDriveDialog(false);
+                          setProjectDriveLink("");
+                          toast.success("Using global Drive folder");
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* Google Drive files section removed - now just opens folder link */}
 
