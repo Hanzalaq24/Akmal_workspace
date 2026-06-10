@@ -12,7 +12,7 @@ import { ArrowLeft, Plus, Trash2, MessageSquare, MessagesSquare, Paperclip, Cale
 import { useLocation, useRoute } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { isDriveConfigured, listDriveFiles, getDriveUploadLink, clearDriveConfig } from "@/lib/googleDrive";
+import { isDriveConfigured, getDriveUploadLink, clearDriveConfig } from "@/lib/googleDrive";
 
 interface Task {
   id: string;
@@ -67,9 +67,6 @@ export default function ProjectDetail() {
   const [uploadMode, setUploadMode] = useState<"local" | "drive">("local");
   const [driveLink, setDriveLink] = useState("");
   const [googleDriveConnected, setGoogleDriveConnected] = useState(isDriveConfigured());
-  const [googleConnecting, setGoogleConnecting] = useState(false);
-  const [driveFiles, setDriveFiles] = useState<any[]>([]);
-  const [showDriveSettings, setShowDriveSettings] = useState(false);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [pendingCompletePhases, setPendingCompletePhases] = useState<any>(null);
   const [showTeamChat, setShowTeamChat] = useState(false);
@@ -381,11 +378,9 @@ export default function ProjectDetail() {
   };
 
   const handleConnectDrive = () => {
-    // Just refresh status from settings
     const configured = isDriveConfigured();
     setGoogleDriveConnected(configured);
     if (configured) {
-      loadDriveFiles();
       toast.success("Google Drive connected!");
     } else {
       toast.error("Configure Google Drive in Settings first");
@@ -396,20 +391,8 @@ export default function ProjectDetail() {
   const handleDisconnectDrive = () => {
     clearDriveConfig();
     setGoogleDriveConnected(false);
-    setDriveFiles([]);
     toast.success("Google Drive disconnected");
   };
-
-  const loadDriveFiles = async () => {
-    if (!isDriveConfigured()) return;
-    const files = await listDriveFiles();
-    setDriveFiles(files);
-  };
-
-  // Load Drive files on mount
-  useEffect(() => {
-    loadDriveFiles();
-  }, []);
 
   const handleDriveUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -876,26 +859,21 @@ export default function ProjectDetail() {
                     </p>
                     <p className="text-xs text-slate-500">
                       {googleDriveConnected
-                        ? `${driveFiles.length} files in Drive folder`
-                        : "Configure in Settings to view Drive files"}
+                        ? "Click 'Open Drive' to view and manage assets"
+                        : "Go to Settings to connect a shared Drive folder"}
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   {!googleDriveConnected ? (
-                    <Button size="sm" onClick={() => setLocation("/settings")} className="text-indigo-600" variant="outline">
+                    <Button size="sm" onClick={() => setLocation("/settings")} variant="outline" className="text-indigo-600">
                       ⚙️ Settings
                     </Button>
                   ) : (
                     <>
-                      <Button size="sm" variant="outline" onClick={loadDriveFiles}>
-                        🔄 Refresh
+                      <Button size="sm" onClick={() => window.open(getDriveUploadLink(), "_blank")} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                        📁 Open Drive
                       </Button>
-                      {getDriveUploadLink() && (
-                        <Button size="sm" variant="outline" onClick={() => window.open(getDriveUploadLink(), "_blank")}>
-                          📁 Open Drive
-                        </Button>
-                      )}
                       <Button size="sm" variant="outline" onClick={handleDisconnectDrive} className="text-red-600 hover:text-red-700">
                         Disconnect
                       </Button>
@@ -905,7 +883,7 @@ export default function ProjectDetail() {
               </div>
             </Card>
 
-            {/* Drive Settings Dialog removed - now in Settings page */}
+            {/* Google Drive files section removed - now just opens folder link */}
 
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-slate-900">Assets</h3>
@@ -979,35 +957,12 @@ export default function ProjectDetail() {
               </Dialog>
             </div>
 
-            {/* Google Drive Files */}
-            {googleDriveConnected && driveFiles.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-slate-600 mb-3 flex items-center gap-2">
-                  <HardDrive className="w-4 h-4" /> Google Drive Files
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                  {driveFiles.map((file: any) => (
-                    <Card key={file.id} className="glass rounded-xl p-4 hover-lift border-green-200">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="text-3xl">📄</div>
-                      </div>
-                      <h4 className="font-semibold text-slate-900 text-sm truncate">{file.name}</h4>
-                      <p className="text-xs text-slate-600 mt-1">{file.size}</p>
-                      <Button size="sm" variant="outline" className="w-full mt-3" onClick={() => window.open(file.webViewLink, "_blank")}>
-                        <HardDrive className="w-3 h-3 mr-1" /> Open in Drive
-                      </Button>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Local Assets / Empty State */}
-            {project.assets.length === 0 && driveFiles.length === 0 ? (
+            {project.assets.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-400">
                 <FileText className="w-12 h-12 mb-3 opacity-20" />
                 <p className="text-sm font-medium text-slate-500">No assets uploaded</p>
-                <p className="text-xs mt-1">Upload files or connect Google Drive.</p>
+                <p className="text-xs mt-1">Upload files from your device or add Drive links.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
