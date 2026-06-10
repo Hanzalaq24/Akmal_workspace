@@ -4,10 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, User, Settings2, HardDrive, Shield, Bell, Palette, Save, Key, LogOut } from "lucide-react";
+import { ArrowLeft, User, Settings2, HardDrive, Shield, Save, Key, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { setDriveFolderLink, getDriveFolderLink, clearDriveConfig } from "@/lib/googleDrive";
+import { isDriveConfigured, clearDriveConfig } from "@/lib/googleDrive";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   // Google Drive
-  const [driveFolderLink, setDriveFolderLinkState] = useState(getDriveFolderLink());
+  const driveConnected = isDriveConfigured();
 
   const handleSaveProfile = () => {
     if (!profileName.trim()) { toast.error("Name is required"); return; }
@@ -64,15 +64,6 @@ export default function SettingsPage() {
       setNewPassword("");
       setConfirmPassword("");
     } catch { toast.error("Failed"); }
-  };
-
-  const handleSaveDriveSettings = () => {
-    if (!driveFolderLink.trim()) {
-      toast.error("Please enter a Drive folder link");
-      return;
-    }
-    setDriveFolderLink(driveFolderLink.trim());
-    toast.success("Google Drive folder connected!");
   };
 
   const handleClearAllData = () => {
@@ -168,34 +159,22 @@ export default function SettingsPage() {
           <TabsContent value="drive" className="space-y-6">
             <Card className="glass rounded-2xl p-8">
               <h3 className="text-lg font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                <HardDrive className="w-5 h-5 text-indigo-600" /> Google Drive (Shared Folder)
+                <HardDrive className="w-5 h-5 text-indigo-600" /> Google Drive Integration
               </h3>
               <p className="text-sm text-slate-600 mb-6">
-                Connect a shared Google Drive folder. No API key or OAuth required — just a folder link.
+                Google Drive is connected via OAuth. Files are auto-uploaded to akmal26426@gmail.com's Drive (5TB).
               </p>
               <div className="space-y-4 max-w-md">
-                <div className="space-y-2">
-                  <Label htmlFor="folderLink">Drive Folder Link</Label>
-                  <Input
-                    id="folderLink"
-                    placeholder="https://drive.google.com/drive/folders/XXXXX"
-                    value={driveFolderLink}
-                    onChange={(e) => setDriveFolderLinkState(e.target.value)}
-                    className="glass-sm"
-                  />
-                  <p className="text-xs text-slate-400">
-                    1. Go to <strong>akmal26426@gmail.com</strong>'s Google Drive<br/>
-                    2. Create a folder for assets<br/>
-                    3. Share → <strong>"Anyone with the link can edit"</strong><br/>
-                    4. Copy and paste the folder link here
+                <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                  <p className="text-sm font-medium text-green-800">
+                    {driveConnected ? "✅ Connected — Uploads go directly to Drive" : "❌ Not connected — Click 'Connect Drive' in any project's Assets tab"}
                   </p>
                 </div>
-                <Button onClick={handleSaveDriveSettings} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
-                  <Save className="w-4 h-4 mr-2" /> Save Folder
-                </Button>
-                <Button variant="outline" onClick={() => { clearDriveConfig(); setDriveFolderLinkState(""); toast.success("Drive config cleared"); }} className="text-red-600">
-                  Disconnect
-                </Button>
+                {driveConnected && (
+                  <Button variant="outline" onClick={() => { clearDriveConfig(); window.location.reload(); }} className="text-red-600">
+                    Disconnect Drive
+                  </Button>
+                )}
               </div>
             </Card>
           </TabsContent>

@@ -12,7 +12,7 @@ import { ArrowLeft, Plus, Trash2, MessageSquare, MessagesSquare, Paperclip, Cale
 import { useLocation, useRoute } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { isDriveConfigured, getDriveUploadLink } from "@/lib/googleDrive";
+import { isDriveConfigured, connectGoogleDrive, uploadToDrive, listDriveFiles, getDriveUploadLink, clearDriveConfig } from "@/lib/googleDrive";
 
 interface Task {
   id: string;
@@ -67,6 +67,8 @@ export default function ProjectDetail() {
   const [uploadMode, setUploadMode] = useState<"local" | "drive">("local");
   const [driveLink, setDriveLink] = useState("");
   const [googleDriveConnected, setGoogleDriveConnected] = useState(isDriveConfigured());
+  const [driveFiles, setDriveFiles] = useState<any[]>([]);
+  const [driveConnecting, setDriveConnecting] = useState(false);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [pendingCompletePhases, setPendingCompletePhases] = useState<any>(null);
   const [showTeamChat, setShowTeamChat] = useState(false);
@@ -376,26 +378,65 @@ export default function ProjectDetail() {
     toast.success("Google Drive link added");
   };
 
+  const handleConnectDrive = async () => {
+    setDriveConnecting(true);
+    const result = await connectGoogleDrive();
+    setDriveConnecting(false);
+    if (result.success) {
+      setGoogleDriveConnected(true);
+      toast.success("Google Drive connected!");
+      loadDriveFiles();
+    } else {
+      toast.error(result.error || "Failed to connect Google Drive");
+    }
+  };
+
+  const handleDisconnectDrive = () => {
+    clearDriveConfig();
+    setGoogleDriveConnected(false);
+    setDriveFiles([]);
+    toast.success("Google Drive disconnected");
+  };
+
+  const loadDriveFiles = async () => {
+    if (!isDriveConfigured()) return;
+    const files = await listDriveFiles();
+    setDriveFiles(files);
+  };
+
   const handleDriveUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Local upload
-    const asset: Asset = {
-      id: String(Date.now()),
-      name: file.name,
-      type: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "document",
-      size: file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`,
-      uploadedBy: "You",
-      uploadedAt: new Date().toISOString().split("T")[0],
-      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : file.type.startsWith("video/") ? "🎬" : "📄",
-    };
-    const updated = { ...project, assets: [...project.assets, asset] };
-    setProject(updated);
-    saveProjectToStorage({ ...updated });
+    if (googleDriveConnected) {
+      const result = await uploadToDrive(file, project.name);
+      if (result.success) {
+        toast.success("Uploaded to Google Drive!");
+        loadDriveFiles();
+      } else {
+        toast.error(result.error || "Drive upload failed");
+      }
+    } else {
+      const asset: Asset = {
+        id: String(Date.now()),
+        name: file.name,
+        type: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "document",
+        size: file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`,
+        uploadedBy: "You",
+        uploadedAt: new Date().toISOString().split("T")[0],
+        preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : file.type.startsWith("video/") ? "🎬" : "📄",
+      };
+      const updated = { ...project, assets: [...project.assets, asset] };
+      setProject(updated);
+      saveProjectToStorage({ ...updated });
+      toast.success("Asset uploaded locally");
+    }
     setShowAssetUpload(false);
-    toast.success("Asset uploaded");
   };
+
+  useEffect(() => {
+    if (isDriveConfigured()) loadDriveFiles();
+  }, []);
 
   // Format currency (handle amounts less than 1000 properly)
   const formatCurrency = (amount: number) => {
@@ -828,7 +869,7 @@ export default function ProjectDetail() {
 
           {/* Assets Tab */}
           <TabsContent value="assets" className="space-y-6">
-            {/* Google Drive Integration Banner */}
+            {/* Google Drive Banner */}
             <Card className="glass rounded-2xl p-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-3">
@@ -838,31 +879,54 @@ export default function ProjectDetail() {
                   <div>
                     <p className="font-medium text-slate-900 text-sm">
                       {googleDriveConnected
-                        ? (project as any)?.driveFolderLink
-                          ? `Project Drive: ${project.name}`
-                          : "Google Drive Connected"
-                        : "Google Drive Not Configured"}
+                        ? `Google Drive Connected (${driveFiles.length} files)`
+                        : "Google Drive Not Connected"}
                     </p>
                     <p className="text-xs text-slate-500">
                       {googleDriveConnected
-                        ? "Click 'Open Drive' to manage files"
-                        : "Go to Settings to connect"}
+                        ? "Uploads go to Drive. Project subfolders auto-created."
+                        : "Connect to auto-upload assets to 5TB Drive"}
                     </p>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {googleDriveConnected ? (
-                    <Button size="sm" onClick={() => window.open(getDriveUploadLink(), "_blank")} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
-                      📁 Open Drive
+                  {!googleDriveConnected ? (
+                    <Button size="sm" onClick={handleConnectDrive} disabled={driveConnecting} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                      {driveConnecting ? "Connecting..." : "Connect Drive"}
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={() => setLocation("/settings")} variant="outline" className="text-indigo-600">
-                      ⚙️ Settings
-                    </Button>
+                    <>
+                      <Button size="sm" variant="outline" onClick={loadDriveFiles}>🔄</Button>
+                      {getDriveUploadLink() && (
+                        <Button size="sm" variant="outline" onClick={() => window.open(getDriveUploadLink(), "_blank")}>📁 Open</Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={handleDisconnectDrive} className="text-red-600">Disconnect</Button>
+                    </>
                   )}
                 </div>
               </div>
             </Card>
+
+            {/* Drive Files */}
+            {googleDriveConnected && driveFiles.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-slate-600 mb-3 flex items-center gap-2">
+                  <HardDrive className="w-4 h-4" /> Drive Files
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  {driveFiles.map((file: any) => (
+                    <Card key={file.id} className="glass rounded-xl p-4 hover-lift border-green-200">
+                      <div className="text-3xl mb-2">📄</div>
+                      <h4 className="font-semibold text-slate-900 text-sm truncate">{file.name}</h4>
+                      <p className="text-xs text-slate-600 mt-1">{file.size}</p>
+                      <Button size="sm" variant="outline" className="w-full mt-3" onClick={() => window.open(file.webViewLink, "_blank")}>
+                        <HardDrive className="w-3 h-3 mr-1" /> Open
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Google Drive files section removed - now just opens folder link */}
 
