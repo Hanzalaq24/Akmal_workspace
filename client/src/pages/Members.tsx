@@ -34,8 +34,13 @@ export default function Members() {
     localStorage.setItem("akmal-members", JSON.stringify(members));
   }, [members]);
 
-  // Admin sees all, others see only themselves
-  const visibleMembers = isAdmin ? members : members.filter((m: Member) => m.email?.toLowerCase() === user?.email?.toLowerCase());
+  // Admin sees all, others see themselves + admin
+  const ADMIN_EMAIL = "hanzalaq63@gmail.com";
+  const visibleMembers = isAdmin
+    ? members
+    : members.filter((m: Member) =>
+        m.email?.toLowerCase() === user?.email?.toLowerCase() || m.email?.toLowerCase() === ADMIN_EMAIL
+      );
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
