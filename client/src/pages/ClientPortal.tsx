@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, CheckCircle2, Clock, AlertCircle, MessageSquare, ThumbsUp, ThumbsDown, FileText, Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, CheckCircle2, Clock, AlertCircle, MessageSquare, ThumbsUp, ThumbsDown, FileText, Download, Send, MessagesSquare } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 
@@ -23,6 +25,59 @@ export default function ClientPortal() {
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [chatInput, setChatInput] = useState("");
+  const [activeTab, setActiveTab] = useState("milestones");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  interface ChatMessage {
+    id: string;
+    projectId: string;
+    text: string;
+    sender: string;
+    role: "client" | "team";
+    timestamp: string;
+  }
+
+  const loadMessages = (): ChatMessage[] => {
+    try {
+      const saved = localStorage.getItem("akmal-chats");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  };
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const projectId = params?.projectId || "";
+
+  useEffect(() => {
+    const allMessages = loadMessages();
+    setMessages(allMessages.filter((m: ChatMessage) => m.projectId === projectId));
+  }, [projectId]);
+
+  const saveMessages = (msgs: ChatMessage[]) => {
+    try {
+      const allMessages = loadMessages();
+      const other = allMessages.filter((m: ChatMessage) => m.projectId !== projectId);
+      const updated = [...other, ...msgs];
+      localStorage.setItem("akmal-chats", JSON.stringify(updated));
+    } catch {}
+  };
+
+  const handleSendMessage = (role: "client" | "team") => {
+    if (!chatInput.trim()) return;
+    const msg: ChatMessage = {
+      id: String(Date.now()),
+      projectId,
+      text: chatInput.trim(),
+      sender: role === "client" ? (clientProject?.clientName || "Client") : "Team",
+      role,
+      timestamp: new Date().toISOString(),
+    };
+    const updated = [...messages, msg];
+    setMessages(updated);
+    saveMessages(updated);
+    setChatInput("");
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  };
 
   // Load project from localStorage
   const savedProjects = (() => {
@@ -159,11 +214,14 @@ export default function ClientPortal() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="milestones" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="glass rounded-2xl p-1 mb-6">
             <TabsTrigger value="milestones" className="rounded-lg">Milestones</TabsTrigger>
             <TabsTrigger value="updates" className="rounded-lg">Updates</TabsTrigger>
             <TabsTrigger value="deliverables" className="rounded-lg">Deliverables</TabsTrigger>
+            <TabsTrigger value="chat" className="rounded-lg">
+              <MessagesSquare className="w-4 h-4 mr-1" /> Chat
+            </TabsTrigger>
           </TabsList>
 
           {/* Milestones Tab */}
@@ -300,17 +358,91 @@ export default function ClientPortal() {
               ))}
             </div>
           </TabsContent>
+
+          {/* Chat Tab */}
+          <TabsContent value="chat" className="space-y-4">
+            <Card className="glass rounded-2xl flex flex-col h-[500px] overflow-hidden">
+              {/* Chat Header */}
+              <div className="p-4 border-b border-white/20 bg-white/30">
+                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                  <MessagesSquare className="w-5 h-5 text-indigo-600" />
+                  Chat with Project Team
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">Messages are visible to both you and the team.</p>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                    <MessagesSquare className="w-12 h-12 mb-3 opacity-20" />
+                    <p className="text-sm font-medium">No messages yet</p>
+                    <p className="text-xs mt-1">Start the conversation with your project team.</p>
+                  </div>
+                ) : (
+                  messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.role === "client" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${
+                          msg.role === "client"
+                            ? "bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-br-md"
+                            : "bg-white/60 text-slate-900 rounded-bl-md border border-white/30"
+                        }`}
+                      >
+                        <p className="text-xs font-medium mb-1 opacity-75">{msg.sender}</p>
+                        <p>{msg.text}</p>
+                        <p className="text-[10px] opacity-60 mt-1 text-right">
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Chat Input */}
+              <div className="p-4 border-t border-white/20 bg-white/30">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Type your message..."
+                    className="glass-sm flex-1"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage("client");
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={() => handleSendMessage("client")}
+                    className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Contact Section */}
         <Card className="glass rounded-2xl p-8 mt-8 hover-lift">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Need Help?</h3>
           <p className="text-slate-600 mb-4">
-            If you have any questions or concerns about the project, please reach out to your project manager.
+            If you have any questions or concerns about the project, please reach out to your project manager. Use the <strong>Chat tab</strong> above to send messages directly.
           </p>
           <div className="flex gap-4">
-            <Button className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
-              <MessageSquare className="w-4 h-4 mr-2" /> Send Message
+            <Button
+              className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white"
+              onClick={() => { setActiveTab("chat"); chatEndRef.current?.scrollIntoView(); }}
+            >
+              <MessageSquare className="w-4 h-4 mr-2" /> Open Chat
             </Button>
             <Button variant="outline">
               Schedule Call

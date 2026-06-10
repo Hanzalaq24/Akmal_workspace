@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, Trash2, MessageSquare, Paperclip, Calendar, User, DollarSign, Flag, CheckCircle2, Circle, AlertCircle, Download, Upload, Share2, MoreVertical, Zap, Layers, FileText, Link2, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, MessageSquare, MessagesSquare, Paperclip, Calendar, User, DollarSign, Flag, CheckCircle2, Circle, AlertCircle, Download, Upload, Share2, MoreVertical, Zap, Layers, FileText, Link2, X, Send } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 
@@ -65,6 +65,59 @@ export default function ProjectDetail() {
   const [driveLink, setDriveLink] = useState("");
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [pendingCompletePhases, setPendingCompletePhases] = useState<any>(null);
+  const [showTeamChat, setShowTeamChat] = useState(false);
+  const [teamChatInput, setTeamChatInput] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  interface ChatMessage {
+    id: string;
+    projectId: string;
+    text: string;
+    sender: string;
+    role: "client" | "team";
+    timestamp: string;
+  }
+
+  const loadMessages = (): ChatMessage[] => {
+    try {
+      const saved = localStorage.getItem("akmal-chats");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  };
+
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const pid = params?.id || "";
+
+  useEffect(() => {
+    const allMessages = loadMessages();
+    setChatMessages(allMessages.filter((m: ChatMessage) => m.projectId === pid));
+  }, [pid]);
+
+  const saveChatMessages = (msgs: ChatMessage[]) => {
+    try {
+      const allMessages = loadMessages();
+      const other = allMessages.filter((m: ChatMessage) => m.projectId !== pid);
+      const updated = [...other, ...msgs];
+      localStorage.setItem("akmal-chats", JSON.stringify(updated));
+    } catch {}
+  };
+
+  const handleTeamSend = () => {
+    if (!teamChatInput.trim()) return;
+    const msg: ChatMessage = {
+      id: String(Date.now()),
+      projectId: pid,
+      text: teamChatInput.trim(),
+      sender: "Team",
+      role: "team",
+      timestamp: new Date().toISOString(),
+    };
+    const updated = [...chatMessages, msg];
+    setChatMessages(updated);
+    saveChatMessages(updated);
+    setTeamChatInput("");
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  };
 
   // New task form state
   const [newTask, setNewTask] = useState({
@@ -1004,7 +1057,79 @@ export default function ProjectDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Complete Project Confirmation Dialog */}
+      {/* Team Chat Floating Panel */}
+      <div className="fixed bottom-6 right-6 z-30">
+        {!showTeamChat ? (
+          <button
+            onClick={() => setShowTeamChat(true)}
+            className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all hover:scale-110"
+          >
+            <MessagesSquare className="w-6 h-6" />
+          </button>
+        ) : (
+          <Card className="glass rounded-2xl shadow-2xl w-80 sm:w-96 overflow-hidden">
+            <div className="p-3 border-b border-white/20 bg-white/40 flex justify-between items-center">
+              <h4 className="font-semibold text-sm text-slate-900 flex items-center gap-2">
+                <MessagesSquare className="w-4 h-4 text-indigo-600" />
+                Client Chat
+              </h4>
+              <button
+                onClick={() => setShowTeamChat(false)}
+                className="p-1 hover:bg-white/50 rounded transition-colors"
+              >
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            <div className="h-72 overflow-y-auto p-3 space-y-3">
+              {chatMessages.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+                  No messages from client yet.
+                </div>
+              ) : (
+                chatMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.role === "team" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-xl px-3 py-2 text-xs ${
+                        msg.role === "team"
+                          ? "bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-br-sm"
+                          : "bg-white/70 text-slate-900 rounded-bl-sm border border-white/30"
+                      }`}
+                    >
+                      <p className="font-medium opacity-75 mb-0.5">{msg.sender}</p>
+                      <p>{msg.text}</p>
+                      <p className="text-[10px] opacity-60 mt-1 text-right">
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <div className="p-3 border-t border-white/20 bg-white/30 flex gap-2">
+              <Input
+                placeholder="Reply to client..."
+                className="glass-sm flex-1 text-xs h-8"
+                value={teamChatInput}
+                onChange={(e) => setTeamChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleTeamSend();
+                  }
+                }}
+              />
+              <Button size="sm" onClick={handleTeamSend} className="bg-gradient-to-r from-teal-500 to-teal-600 text-white h-8 px-3">
+                <Send className="w-3 h-3" />
+              </Button>
+            </div>
+          </Card>
+        )}
+      </div>
+
       <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
         <AlertDialogContent className="glass">
           <AlertDialogHeader>
