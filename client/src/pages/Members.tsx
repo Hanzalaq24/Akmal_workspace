@@ -35,7 +35,7 @@ export default function Members() {
   }, [members]);
 
   // Admin sees all, others see themselves + admin
-  const ADMIN_EMAIL = "hanzalaq63@gmail.com";
+  const ADMIN_EMAIL = "akmal26426@gmail.com";
   const visibleMembers = isAdmin
     ? members
     : members.filter((m: Member) =>
