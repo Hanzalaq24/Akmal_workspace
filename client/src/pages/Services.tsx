@@ -51,6 +51,12 @@ const calculateGST = (subtotal: number, gstPercentage: number) => {
   return (subtotal * gstPercentage) / 100;
 };
 
+const formatDateTime = (dateStr: string) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return `${d.toLocaleDateString("en-IN")} ${d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
+};
+
   const generatePDF = (invoice: Invoice) => {
     if (!invoice) {
       toast.error("Please select an invoice first");
@@ -112,7 +118,7 @@ const calculateGST = (subtotal: number, gstPercentage: number) => {
           <div>
             <div class="detail-section">
               <h3>Invoice Details</h3>
-              <p><strong>Invoice Date:</strong> ${new Date(invoice.date).toLocaleDateString('en-IN')}</p>
+              <p><strong>Invoice Date:</strong> ${formatDateTime(invoice.date)}</p>
               <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</p>
               <p><strong>Status:</strong> <span style="text-transform: capitalize; color: ${invoice.status === 'paid' ? '#10b981' : invoice.status === 'sent' ? '#3b82f6' : '#9ca3af'}">${invoice.status}</span></p>
             </div>
@@ -165,7 +171,7 @@ const calculateGST = (subtotal: number, gstPercentage: number) => {
         ` : ''}
 
         <div class="footer">
-          <p>Thank you for your business! | Akmal Creative Hub | Generated on ${new Date().toLocaleDateString('en-IN')}</p>
+          <p>Thank you for your business! | Akmal Creative Hub | Generated on ${formatDateTime(new Date().toISOString())}</p>
         </div>
       </div>
     </body>
@@ -228,7 +234,7 @@ export default function Services() {
       id: `INV-${String(Date.now()).slice(-6)}`,
       projectName: newInvoiceData.projectName,
       clientName: newInvoiceData.clientName,
-      date: new Date().toISOString().split("T")[0],
+      date: new Date().toISOString(),
       dueDate: newInvoiceData.dueDate,
       items: [],
       subtotal: 0,
@@ -516,7 +522,7 @@ export default function Services() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-slate-600">Date</p>
-                        <p className="font-medium text-slate-900">{selectedInvoice.date}</p>
+                        <p className="font-medium text-slate-900">{formatDateTime(selectedInvoice.date)}</p>
                       </div>
                     </div>
 
