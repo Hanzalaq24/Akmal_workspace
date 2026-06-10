@@ -9,6 +9,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import ClientPortal from "./pages/ClientPortal";
 import Landing from "./pages/Landing";
 import Services from "./pages/Services";
+import Members from "./pages/Members";
 
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
       <Route path={"/project/:id"} component={ProjectDetail} />
       <Route path={"/client/:projectId"} component={ClientPortal} />
       <Route path={"/services"} component={Services} />
+      <Route path={"/members"} component={Members} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

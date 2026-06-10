@@ -119,6 +119,13 @@ export default function ProjectDetail() {
     setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
+  const loadAllMembers = (): { id: string; name: string; email: string; role: string; avatar: string }[] => {
+    try {
+      const saved = localStorage.getItem("akmal-members");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  };
+
   // New task form state
   const [newTask, setNewTask] = useState({
     title: "",
@@ -171,6 +178,9 @@ export default function ProjectDetail() {
     if (!foundProject) return null;
     return buildProject(foundProject);
   });
+
+  const allMembers = loadAllMembers();
+  const displayTeam = allMembers.length > 0 ? allMembers : (project?.team || []);
 
   // Sync project changes back to localStorage
   const saveProjectToStorage = (updatedProject: any) => {
@@ -563,7 +573,7 @@ export default function ProjectDetail() {
               <Card className="glass rounded-2xl p-6 hover-lift">
                 <h3 className="text-lg font-semibold text-slate-900 mb-4">Team Members</h3>
                 <div className="space-y-3">
-                  {project.team.map((member: { id: string; name: string; role: string; avatar: string }) => (
+                  {displayTeam.map((member: { id: string; name: string; role: string; avatar: string; email?: string }) => (
                     <div key={member.id} className="flex items-center gap-3 p-3 bg-white/30 rounded-lg">
                       <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                         {member.avatar}
@@ -571,9 +581,13 @@ export default function ProjectDetail() {
                       <div className="flex-1">
                         <p className="font-medium text-slate-900">{member.name}</p>
                         <p className="text-xs text-slate-600">{member.role}</p>
+                        {member.email && <p className="text-[10px] text-slate-400">{member.email}</p>}
                       </div>
                     </div>
                   ))}
+                  {displayTeam.length === 0 && (
+                    <p className="text-sm text-slate-400 py-4 text-center">No team members assigned</p>
+                  )}
                 </div>
               </Card>
             </div>
@@ -937,7 +951,7 @@ export default function ProjectDetail() {
             <Card className="glass rounded-2xl p-6 hover-lift">
               <h3 className="text-lg font-semibold text-slate-900 mb-4">Team Members</h3>
               <div className="space-y-4">
-                {project.team.map((member: { id: string; name: string; role: string; avatar: string }) => (
+                {displayTeam.map((member: { id: string; name: string; role: string; avatar: string; email?: string }) => (
                   <div key={member.id} className="flex items-center justify-between p-4 bg-white/30 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-full flex items-center justify-center text-white font-bold">
@@ -946,13 +960,17 @@ export default function ProjectDetail() {
                       <div>
                         <p className="font-semibold text-slate-900">{member.name}</p>
                         <p className="text-sm text-slate-600">{member.role}</p>
+                        {member.email && <p className="text-xs text-slate-400">{member.email}</p>}
                       </div>
                     </div>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => setLocation("/members")}>
                       View Profile
                     </Button>
                   </div>
                 ))}
+                {displayTeam.length === 0 && (
+                  <p className="text-sm text-slate-400 py-4 text-center">No team members assigned</p>
+                )}
               </div>
             </Card>
           </TabsContent>

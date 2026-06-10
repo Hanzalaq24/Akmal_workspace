@@ -174,7 +174,12 @@ export default function Dashboard() {
   const completedTasks = projects.reduce((sum, p) => sum + p.tasks.filter(t => t.status === "completed").length, 0);
   const inProgressTasks = projects.reduce((sum, p) => sum + p.tasks.filter(t => t.status === "in-progress").length, 0);
   const pendingTasks = projects.reduce((sum, p) => sum + p.tasks.filter(t => t.status === "todo").length, 0);
-  const teamCount = new Set(projects.flatMap(p => p.team)).size;
+  const teamCount = (() => {
+    try {
+      const saved = localStorage.getItem("akmal-members");
+      return saved ? JSON.parse(saved).length : 0;
+    } catch { return 0; }
+  })();
 
   const formatCurrency = (amount: number) => {
     if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
@@ -220,6 +225,14 @@ export default function Dashboard() {
               className="text-slate-600 hover:text-indigo-600"
             >
               💰 Services & Billing
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setLocation("/members")}
+              className="text-slate-600 hover:text-indigo-600"
+            >
+              👥 Team
             </Button>
             <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
               <Bell className="w-5 h-5 text-slate-600" />
