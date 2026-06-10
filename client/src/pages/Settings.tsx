@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, User, Settings2, HardDrive, Shield, Bell, Palette, Save, Key, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
-import { setGoogleClientId, getGoogleClientId } from "@/lib/googleDrive";
+import { setDriveApiKey, getDriveApiKey, setDriveFolderId, getDriveFolderId, setDriveFolderLink, getDriveFolderLink, extractFolderId, clearDriveConfig } from "@/lib/googleDrive";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
@@ -21,7 +21,8 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   // Google Drive
-  const [driveClientId, setDriveClientId] = useState(getGoogleClientId());
+  const [driveApiKey, setDriveApiKeyState] = useState(getDriveApiKey());
+  const [driveFolderLink, setDriveFolderLinkState] = useState(getDriveFolderLink());
 
   const handleSaveProfile = () => {
     if (!profileName.trim()) { toast.error("Name is required"); return; }
@@ -67,8 +68,19 @@ export default function SettingsPage() {
   };
 
   const handleSaveDriveSettings = () => {
-    setGoogleClientId(driveClientId.trim());
-    toast.success("Google Drive Client ID saved");
+    if (!driveApiKey.trim() || !driveFolderLink.trim()) {
+      toast.error("Both API Key and Folder Link are required");
+      return;
+    }
+    const folderId = extractFolderId(driveFolderLink.trim());
+    if (!folderId) {
+      toast.error("Invalid Drive folder link. Paste the full folder URL.");
+      return;
+    }
+    setDriveApiKey(driveApiKey.trim());
+    setDriveFolderId(folderId);
+    setDriveFolderLink(driveFolderLink.trim());
+    toast.success("Google Drive configured! Folder ID: " + folderId);
   };
 
   const handleClearAllData = () => {
@@ -167,17 +179,32 @@ export default function SettingsPage() {
                 <HardDrive className="w-5 h-5 text-indigo-600" /> Google Drive Integration
               </h3>
               <p className="text-sm text-slate-600 mb-6">
-                Connect Google Drive to auto-backup project assets. Get your Client ID from{" "}
-                <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-600 underline">Google Cloud Console</a>.
-                Enable the <strong>Google Drive API</strong> and create an <strong>OAuth 2.0 Client ID</strong> for a Web Application.
+                Connect <strong>akmal26426@gmail.com</strong>'s Google Drive folder (5TB). No OAuth needed.
               </p>
+
               <div className="space-y-4 max-w-md">
                 <div className="space-y-2">
-                  <Label htmlFor="clientId">OAuth 2.0 Client ID</Label>
-                  <Input id="clientId" placeholder="123456789-xxxxx.apps.googleusercontent.com" value={driveClientId} onChange={(e) => setDriveClientId(e.target.value)} className="glass-sm" />
+                  <Label htmlFor="apiKey">Google Drive API Key</Label>
+                  <Input id="apiKey" placeholder="AIza..." value={driveApiKey} onChange={(e) => setDriveApiKeyState(e.target.value)} className="glass-sm" />
+                  <p className="text-xs text-slate-400">
+                    From{" "}<a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-600 underline">Google Cloud Console</a> → APIs & Services → Credentials → Create API Key. Restrict it to Drive API.
+                  </p>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="folderLink">Drive Folder Link</Label>
+                  <Input id="folderLink" placeholder="https://drive.google.com/drive/folders/XXXXX" value={driveFolderLink} onChange={(e) => setDriveFolderLinkState(e.target.value)} className="glass-sm" />
+                  <p className="text-xs text-slate-400">
+                    Create a folder in akmal26426@gmail.com's Drive → Share → "Anyone with the link can view". Paste the folder URL here.
+                  </p>
+                </div>
+
                 <Button onClick={handleSaveDriveSettings} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
-                  <Save className="w-4 h-4 mr-2" /> Save
+                  <Save className="w-4 h-4 mr-2" /> Save & Connect
+                </Button>
+
+                <Button variant="outline" onClick={() => { clearDriveConfig(); setDriveApiKeyState(""); setDriveFolderLinkState(""); toast.success("Drive config cleared"); }} className="text-red-600">
+                  Disconnect Drive
                 </Button>
               </div>
             </Card>
