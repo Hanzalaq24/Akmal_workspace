@@ -878,10 +878,20 @@ export default function ProjectDetail() {
                   <DialogHeader>
                     <DialogTitle>Upload Asset</DialogTitle>
                     <DialogDescription>
-                      {googleDriveConnected ? "Files will be uploaded to your Google Drive" : "Choose upload method"}
+                      {googleDriveConnected
+                        ? "Upload locally or open Google Drive to add files."
+                        : "Choose upload method"}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
+                    {googleDriveConnected && (
+                      <Button
+                        onClick={() => { window.open(getDriveUploadLink(), "_blank"); setShowAssetUpload(false); }}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <HardDrive className="w-4 h-4 mr-2" /> Open Google Drive to Upload
+                      </Button>
+                    )}
                     <div className="flex gap-2">
                       <Button
                         variant={uploadMode === "local" ? "default" : "outline"}
@@ -906,7 +916,7 @@ export default function ProjectDetail() {
                             <Upload className="w-10 h-10 mx-auto mb-3 text-slate-400" />
                             <p className="text-sm font-medium text-slate-600">Click to browse files</p>
                             <p className="text-xs text-slate-400 mt-1">
-                              {googleDriveConnected ? "Auto-uploads to Google Drive" : "All file types supported, no quality loss"}
+                              {googleDriveConnected ? "Saved locally only. Use 'Open Drive' above for Drive storage." : "All file types supported, no quality loss"}
                             </p>
                             <input
                               type="file"
