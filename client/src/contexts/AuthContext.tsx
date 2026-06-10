@@ -8,6 +8,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  isAdmin: boolean;
   login: (email: string, password: string) => { success: boolean; error?: string };
   signup: (name: string, email: string, password: string) => { success: boolean; error?: string };
   logout: () => void;
@@ -67,6 +68,7 @@ function addToMembers(name: string, email: string) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => getCurrentUser());
+  const isAdmin = user?.email === "hanzalaq63@gmail.com";
 
   const login = (email: string, password: string): { success: boolean; error?: string } => {
     const users = getUsers();
@@ -112,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isAdmin, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

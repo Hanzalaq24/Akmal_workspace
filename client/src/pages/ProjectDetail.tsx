@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Plus, Trash2, MessageSquare, MessagesSquare, Paperclip, Calendar, User, DollarSign, Flag, CheckCircle2, Circle, AlertCircle, Download, Upload, Share2, MoreVertical, Zap, Layers, FileText, Link2, X, Send, HardDrive } from "lucide-react";
 import { useLocation, useRoute } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { isGoogleConnected, connectGoogleDrive, clearGoogleToken, uploadToDrive, listDriveFiles, deleteDriveFile, setGoogleClientId, getGoogleClientId } from "@/lib/googleDrive";
 
@@ -53,6 +54,7 @@ interface Asset {
 
 export default function ProjectDetail() {
   const [, setLocation] = useLocation();
+  const { isAdmin } = useAuth();
   const [match, params] = useRoute("/project/:id");
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -186,7 +188,9 @@ export default function ProjectDetail() {
   });
 
   const allMembers = loadAllMembers();
-  const displayTeam = allMembers.length > 0 ? allMembers : (project?.team || []);
+  const displayTeam = isAdmin
+    ? allMembers
+    : (allMembers.length > 0 ? allMembers.filter((m: any) => (project?.team || []).some((t: any) => typeof t === "string" ? t === m.name : t.name === m.name)) : (project?.team || []));
 
   // Sync project changes back to localStorage
   const saveProjectToStorage = (updatedProject: any) => {
