@@ -471,7 +471,10 @@ export default function Services() {
     quantity: number,
     unitPrice: number,
     billingType?: "Fixed" | "Hourly" | "Daily" | "Monthly",
-    description?: string
+    description?: string,
+    hsn?: string,
+    discount?: number,
+    cess?: number
   ) => {
     const invoice = invoices.find((inv) => inv.id === invoiceId);
     if (!invoice) return;
@@ -485,19 +488,26 @@ export default function Services() {
             total: quantity * unitPrice,
             billingType: billingType !== undefined ? billingType : item.billingType,
             description: description !== undefined ? description : item.description,
+            hsn: hsn !== undefined ? hsn : item.hsn,
+            discount: discount !== undefined ? discount : item.discount,
+            cess: cess !== undefined ? cess : item.cess,
           }
         : item
     );
 
     const subtotal = updatedItems.reduce((sum, i) => sum + i.total, 0);
     const gstAmount = calculateGST(subtotal, invoice.gstPercentage);
+    const cessTotal = updatedItems.reduce((sum, i) => sum + (i.cess || 0), 0);
+    const discountTotal = updatedItems.reduce((sum, i) => sum + (i.discount || 0), 0);
 
     const updatedInvoice = {
       ...invoice,
       items: updatedItems,
       subtotal,
       gstAmount,
-      total: subtotal + gstAmount,
+      cess: cessTotal,
+      discount: discountTotal,
+      total: subtotal + gstAmount + cessTotal + (invoice.additionalCharges || 0) - discountTotal + (invoice.roundOff || 0),
     };
 
     setInvoices(invoices.map((inv) => (inv.id === invoiceId ? updatedInvoice : inv)));
