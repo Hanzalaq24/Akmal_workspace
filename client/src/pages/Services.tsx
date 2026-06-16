@@ -79,6 +79,14 @@ const formatDateTime = (dateStr: string) => {
       toast.error("Please select an invoice first");
       return;
     }
+    // Load company profile from Settings
+    let company = { name: "Akmal", address: "", mobile: "", gstin: "", email: "", pan: "" };
+    try {
+      const saved = localStorage.getItem("akmal-company-profile");
+      if (saved) company = JSON.parse(saved);
+    } catch {}
+
+    const dueDays = invoice.dueDate ? Math.max(0, Math.ceil((new Date(invoice.dueDate).getTime() - Date.now()) / (1000*60*60*24))) : 0;
     const halfGst = Math.round(invoice.gstAmount / 2);
     const halfGstPercent = invoice.gstPercentage / 2;
     const taxable = invoice.subtotal;
@@ -182,20 +190,21 @@ const formatDateTime = (dateStr: string) => {
             </svg>
           </div>
           <div class="company-info">
-            <h1>Akmal</h1>
-            <p>FF, 11 T P NO 20,0037, CHHIPAVAD, GAMTAL, VARACHHA ROAD, NEAR MASJID, Nana Varachha, Surat, Surat, Gujarat, 395006</p>
+            <h1>${company.name}</h1>
+            <p>${company.address}</p>
             <div class="contact">
-              <p><strong>Mobile:</strong> 8866795230 &nbsp;&nbsp;&nbsp; <strong>GSTIN:</strong> 24ALUPB9563G1ZR</p>
-              <p><strong>Email:</strong> eakmalsurat@gmail.com</p>
+              <p><strong>Mobile:</strong> ${company.mobile} ${company.gstin ? `&nbsp;&nbsp;&nbsp; <strong>GSTIN:</strong> ${company.gstin}` : ''}</p>
+              <p><strong>Email:</strong> ${company.email}</p>
+              ${company.pan ? `<p><strong>PAN:</strong> ${company.pan}</p>` : ''}
             </div>
           </div>
         </div>
 
         <!-- Invoice Bar -->
         <div class="invoice-bar">
-          <span>Invoice No.: ${invoice.id.replace('INV-', '')}</span>
+          <span>Invoice No.: ${invoice.id.replace('INV-', '#')}</span>
           <span>Invoice Date: ${new Date(invoice.date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-          <span>Due Date: ${new Date(invoice.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+          <span>Due Date: ${new Date(invoice.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${dueDays > 0 ? `(${dueDays} day(s))` : ''}</span>
         </div>
 
         <!-- Bill To / Ship To -->
@@ -572,9 +581,9 @@ export default function Services() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">Services & Billing</h1>
+            <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-2">Services & Billing</h1>
             <p className="text-slate-600">Manage services, create invoices, and track payments</p>
           </div>
           <Dialog open={isAddingInvoice} onOpenChange={setIsAddingInvoice}>
@@ -741,10 +750,10 @@ export default function Services() {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Invoices List */}
-          <div className="lg:col-span-1">
-            <Card className="glass sticky top-8">
+          <div className="lg:col-span-1 order-2 lg:order-1">
+            <Card className="glass lg:sticky lg:top-8">
               <div className="p-6">
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">Invoices</h2>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -785,7 +794,7 @@ export default function Services() {
           </div>
 
           {/* Invoice Details */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 order-1 lg:order-2">
             {selectedInvoice ? (
               <div className="space-y-6">
                 {/* Invoice Header */}

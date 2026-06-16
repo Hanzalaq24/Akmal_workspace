@@ -219,31 +219,31 @@ export default function Dashboard() {
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Akmal Creative Hub</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-600 hidden sm:inline">{user?.name}</span>
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
+            <span className="text-sm text-slate-600 hidden md:inline shrink-0">{user?.name}</span>
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => setLocation("/items")}
-              className="text-slate-600 hover:text-indigo-600"
+              className="text-slate-600 hover:text-indigo-600 shrink-0"
             >
-              📦 Items
+              📦 <span className="hidden sm:inline">Items</span>
             </Button>
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => setLocation("/services")}
-              className="text-slate-600 hover:text-indigo-600"
+              className="text-slate-600 hover:text-indigo-600 shrink-0"
             >
-              💰 Billing
+              💰 <span className="hidden sm:inline">Billing</span>
             </Button>
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => setLocation("/members")}
-              className="text-slate-600 hover:text-indigo-600"
+              className="text-slate-600 hover:text-indigo-600 shrink-0"
             >
-              👥 Team
+              👥 <span className="hidden sm:inline">Team</span>
             </Button>
             <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
               <Bell className="w-5 h-5 text-slate-600" />

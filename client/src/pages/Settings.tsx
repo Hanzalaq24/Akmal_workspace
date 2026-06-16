@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, User, Settings2, HardDrive, Shield, Save, Key, LogOut } from "lucide-react";
+import { ArrowLeft, User, Settings2, HardDrive, Shield, Save, Key, LogOut, Building2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { isDriveConfigured, clearDriveConfig } from "@/lib/googleDrive";
@@ -19,6 +19,12 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Company Profile
+  const defaultCompany = { companyName: "Akmal", address: "FF, 11 T P NO 20,0037, CHHIPAVAD, GAMTAL, VARACHHA ROAD, NEAR MASJID, Nana Varachha, Surat, Gujarat, 395006", mobile: "8866795230", gstin: "24ALUPB9563G1ZR", email: "eakmalsurat@gmail.com", pan: "" };
+  const [companyProfile, setCompanyProfile] = useState(() => {
+    try { return { ...defaultCompany, ...JSON.parse(localStorage.getItem("akmal-company-profile") || "{}") }; } catch { return defaultCompany; }
+  });
 
   // Google Drive
   const driveConnected = isDriveConfigured();
@@ -66,6 +72,12 @@ export default function SettingsPage() {
     } catch { toast.error("Failed"); }
   };
 
+  const handleSaveCompany = () => {
+    if (!companyProfile.companyName.trim()) { toast.error("Company name is required"); return; }
+    localStorage.setItem("akmal-company-profile", JSON.stringify(companyProfile));
+    toast.success("Company profile saved!");
+  };
+
   const handleClearAllData = () => {
     if (confirm("This will delete ALL projects, invoices, members, chats and users. Are you sure?")) {
       localStorage.clear();
@@ -96,6 +108,7 @@ export default function SettingsPage() {
           <TabsList className="glass rounded-2xl p-1 mb-6 w-full justify-start overflow-x-auto">
             <TabsTrigger value="profile" className="rounded-lg"><User className="w-4 h-4 mr-1" /> Profile</TabsTrigger>
             <TabsTrigger value="security" className="rounded-lg"><Shield className="w-4 h-4 mr-1" /> Security</TabsTrigger>
+            <TabsTrigger value="company" className="rounded-lg"><Building2 className="w-4 h-4 mr-1" /> Company</TabsTrigger>
             <TabsTrigger value="drive" className="rounded-lg"><HardDrive className="w-4 h-4 mr-1" /> Google Drive</TabsTrigger>
             <TabsTrigger value="system" className="rounded-lg"><Settings2 className="w-4 h-4 mr-1" /> System</TabsTrigger>
           </TabsList>
@@ -150,6 +163,47 @@ export default function SettingsPage() {
                 </div>
                 <Button onClick={handleChangePassword} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
                   <Key className="w-4 h-4 mr-2" /> Update Password
+                </Button>
+              </div>
+            </Card>
+          </TabsContent>
+
+          {/* Company Profile Tab */}
+          <TabsContent value="company" className="space-y-6">
+            <Card className="glass rounded-2xl p-8">
+              <h3 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-indigo-600" /> Company Profile
+              </h3>
+              <p className="text-sm text-slate-600 mb-6">
+                Configure your company details. These will be used in invoice PDFs and other documents.
+              </p>
+              <div className="space-y-4 max-w-md">
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Company Name</Label>
+                  <Input id="companyName" value={companyProfile.companyName} onChange={(e) => setCompanyProfile({ ...companyProfile, companyName: e.target.value })} className="glass-sm" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyEmail">Email</Label>
+                  <Input id="companyEmail" type="email" value={companyProfile.email} onChange={(e) => setCompanyProfile({ ...companyProfile, email: e.target.value })} className="glass-sm" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyMobile">Mobile</Label>
+                  <Input id="companyMobile" value={companyProfile.mobile} onChange={(e) => setCompanyProfile({ ...companyProfile, mobile: e.target.value })} className="glass-sm" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyAddress">Address</Label>
+                  <Input id="companyAddress" value={companyProfile.address} onChange={(e) => setCompanyProfile({ ...companyProfile, address: e.target.value })} className="glass-sm" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyGstin">GSTIN</Label>
+                  <Input id="companyGstin" value={companyProfile.gstin} onChange={(e) => setCompanyProfile({ ...companyProfile, gstin: e.target.value })} className="glass-sm" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyPan">PAN (Optional)</Label>
+                  <Input id="companyPan" value={companyProfile.pan} onChange={(e) => setCompanyProfile({ ...companyProfile, pan: e.target.value })} className="glass-sm" />
+                </div>
+                <Button onClick={handleSaveCompany} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+                  <Save className="w-4 h-4 mr-2" /> Save Company Profile
                 </Button>
               </div>
             </Card>

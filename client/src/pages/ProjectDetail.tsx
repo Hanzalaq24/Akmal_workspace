@@ -491,25 +491,25 @@ export default function ProjectDetail() {
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/20 to-white">
       {/* Header */}
       <header className="sticky top-0 z-40 glass border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center gap-2">
+          <div className="flex items-center gap-3 min-w-0">
             <button 
               onClick={() => setLocation("/dashboard")}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
             >
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">{project.name}</h1>
-              <p className="text-sm text-slate-600">{project.client}</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{project.name}</h1>
+              <p className="text-sm text-slate-600 truncate">{project.client}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => setLocation("/services")}
-              className="text-slate-600 hover:text-indigo-600"
+              className="text-slate-600 hover:text-indigo-600 hidden sm:flex"
             >
               💰 Billing
             </Button>
@@ -525,7 +525,7 @@ export default function ProjectDetail() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Project Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <Card className="glass rounded-2xl p-4 hover-lift">
             <div className="flex items-center justify-between">
               <div>
@@ -569,12 +569,12 @@ export default function ProjectDetail() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="glass rounded-2xl p-1 mb-6">
-            <TabsTrigger value="overview" className="rounded-lg">Overview</TabsTrigger>
-            <TabsTrigger value="tasks" className="rounded-lg">Tasks</TabsTrigger>
-            <TabsTrigger value="assets" className="rounded-lg">Assets</TabsTrigger>
-            <TabsTrigger value="team" className="rounded-lg">Team</TabsTrigger>
-            <TabsTrigger value="activity" className="rounded-lg">Activity</TabsTrigger>
+          <TabsList className="glass rounded-2xl p-1 mb-6 overflow-x-auto flex w-full">
+            <TabsTrigger value="overview" className="rounded-lg whitespace-nowrap shrink-0">Overview</TabsTrigger>
+            <TabsTrigger value="tasks" className="rounded-lg whitespace-nowrap shrink-0">Tasks</TabsTrigger>
+            <TabsTrigger value="assets" className="rounded-lg whitespace-nowrap shrink-0">Assets</TabsTrigger>
+            <TabsTrigger value="team" className="rounded-lg whitespace-nowrap shrink-0">Team</TabsTrigger>
+            <TabsTrigger value="activity" className="rounded-lg whitespace-nowrap shrink-0">Activity</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
