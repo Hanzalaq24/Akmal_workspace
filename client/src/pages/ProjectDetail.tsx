@@ -324,7 +324,7 @@ export default function ProjectDetail() {
       clientName: project.client,
       date: new Date().toISOString(),
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      items: [{ id: "1", name: `${project.name} - Complete Project`, quantity: 1, unitPrice: project.budget, total: project.budget }],
+      items: [{ id: "1", name: `${project.name} - Complete Project`, billingType: "Fixed", quantity: 1, unitPrice: project.budget, total: project.budget, description: "Auto-generated upon project completion" }],
       subtotal: project.budget,
       gstPercentage: 18,
       gstAmount: Math.round(project.budget * 0.18),

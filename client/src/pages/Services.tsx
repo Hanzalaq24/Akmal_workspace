@@ -11,9 +11,11 @@ import { toast } from "sonner";
 interface ServiceItem {
   id: string;
   name: string;
+  billingType: "Fixed" | "Hourly" | "Daily" | "Monthly";
   quantity: number;
   unitPrice: number;
   total: number;
+  description?: string;
 }
 
 interface Invoice {
@@ -128,16 +130,21 @@ const formatDateTime = (dateStr: string) => {
         <table>
           <thead>
             <tr>
-              <th>Description</th>
+              <th>Service Details</th>
+              <th>Billing Type</th>
               <th class="text-right">Quantity</th>
-              <th class="text-right">Unit Price</th>
+              <th class="text-right">Rate</th>
               <th class="text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
             ${invoice.items.map(item => `
               <tr>
-                <td>${item.name}</td>
+                <td>
+                  <div style="font-weight: bold; color: #1f2937;">${item.name}</div>
+                  ${item.description ? `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${item.description}</div>` : ''}
+                </td>
+                <td style="color: #4b5563;">${item.billingType || 'Fixed'}</td>
                 <td class="text-right">${item.quantity}</td>
                 <td class="text-right">₹${item.unitPrice.toLocaleString('en-IN')}</td>
                 <td class="text-right">₹${item.total.toLocaleString('en-IN')}</td>
@@ -220,8 +227,10 @@ export default function Services() {
   });
   const [newItem, setNewItem] = useState({
     name: "",
+    billingType: "Fixed" as "Fixed" | "Hourly" | "Daily" | "Monthly",
     quantity: "" as any,
     unitPrice: "" as any,
+    description: "",
   });
 
   const handleAddInvoice = () => {
@@ -270,9 +279,11 @@ export default function Services() {
     const item: ServiceItem = {
       id: String(Date.now()),
       name: newItem.name,
+      billingType: newItem.billingType || "Fixed",
       quantity: qty,
       unitPrice: price,
       total: qty * price,
+      description: newItem.description || "",
     };
 
     const updatedItems = [...selectedInvoice.items, item];
@@ -289,7 +300,7 @@ export default function Services() {
 
     setInvoices(invoices.map((inv) => (inv.id === selectedInvoice.id ? updatedInvoice : inv)));
     setSelectedInvoice(updatedInvoice);
-    setNewItem({ name: "", quantity: "" as any, unitPrice: "" as any });
+    setNewItem({ name: "", billingType: "Fixed", quantity: "" as any, unitPrice: "" as any, description: "" });
     toast.success("Item added to invoice");
   };
 
@@ -316,13 +327,27 @@ export default function Services() {
     toast.success("Item removed");
   };
 
-  const handleEditItem = (invoiceId: string, itemId: string, quantity: number, unitPrice: number) => {
+  const handleEditItem = (
+    invoiceId: string,
+    itemId: string,
+    quantity: number,
+    unitPrice: number,
+    billingType?: "Fixed" | "Hourly" | "Daily" | "Monthly",
+    description?: string
+  ) => {
     const invoice = invoices.find((inv) => inv.id === invoiceId);
     if (!invoice) return;
 
     const updatedItems = invoice.items.map((item) =>
       item.id === itemId
-        ? { ...item, quantity, unitPrice, total: quantity * unitPrice }
+        ? {
+            ...item,
+            quantity,
+            unitPrice,
+            total: quantity * unitPrice,
+            billingType: billingType !== undefined ? billingType : item.billingType,
+            description: description !== undefined ? description : item.description,
+          }
         : item
     );
 
@@ -643,6 +668,52 @@ export default function Services() {
                               {isEditingItems ? (
                                 <div className="space-y-2">
                                   <p className="font-medium text-slate-900">{item.name}</p>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="text-xs text-slate-600">Billing Type</label>
+                                      <Select
+                                        value={item.billingType || "Fixed"}
+                                        onValueChange={(val) =>
+                                          handleEditItem(
+                                            selectedInvoice.id,
+                                            item.id,
+                                            item.quantity,
+                                            item.unitPrice,
+                                            val as any,
+                                            item.description
+                                          )
+                                        }
+                                      >
+                                        <SelectTrigger className="text-sm h-9">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="Fixed">Fixed</SelectItem>
+                                          <SelectItem value="Hourly">Hourly</SelectItem>
+                                          <SelectItem value="Daily">Daily</SelectItem>
+                                          <SelectItem value="Monthly">Monthly</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-slate-600">Description (Optional)</label>
+                                      <Input
+                                        type="text"
+                                        value={item.description || ""}
+                                        onChange={(e) =>
+                                          handleEditItem(
+                                            selectedInvoice.id,
+                                            item.id,
+                                            item.quantity,
+                                            item.unitPrice,
+                                            item.billingType,
+                                            e.target.value
+                                          )
+                                        }
+                                        className="text-sm h-9"
+                                      />
+                                    </div>
+                                  </div>
                                   <div className="grid grid-cols-3 gap-2">
                                     <div>
                                       <label className="text-xs text-slate-600">Qty</label>
@@ -655,7 +726,9 @@ export default function Services() {
                                             selectedInvoice.id,
                                             item.id,
                                             parseInt(e.target.value) || 1,
-                                            item.unitPrice
+                                            item.unitPrice,
+                                            item.billingType,
+                                            item.description
                                           )
                                         }
                                         className="text-sm"
@@ -672,7 +745,9 @@ export default function Services() {
                                             selectedInvoice.id,
                                             item.id,
                                             item.quantity,
-                                            parseFloat(e.target.value) || 0
+                                            parseFloat(e.target.value) || 0,
+                                            item.billingType,
+                                            item.description
                                           )
                                         }
                                         className="text-sm"
@@ -689,7 +764,13 @@ export default function Services() {
                               ) : (
                                 <>
                                   <p className="font-medium text-slate-900">{item.name}</p>
-                                  <p className="text-sm text-slate-600">
+                                  {item.description && (
+                                    <p className="text-xs text-slate-500 italic mt-0.5">{item.description}</p>
+                                  )}
+                                  <p className="text-sm text-slate-600 mt-1">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 mr-2">
+                                      {item.billingType || "Fixed"}
+                                    </span>
                                     {item.quantity} × ₹{item.unitPrice.toLocaleString('en-IN')}
                                   </p>
                                 </>
@@ -744,6 +825,48 @@ export default function Services() {
                               onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                               className="mt-2"
                             />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Billing Type
+                              </label>
+                              <Select
+                                value={newItem.billingType}
+                                onValueChange={(value) =>
+                                  setNewItem({
+                                    ...newItem,
+                                    billingType: value as any,
+                                  })
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Fixed">Fixed</SelectItem>
+                                  <SelectItem value="Hourly">Hourly</SelectItem>
+                                  <SelectItem value="Daily">Daily</SelectItem>
+                                  <SelectItem value="Monthly">Monthly</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Description (Optional)
+                              </label>
+                              <Input
+                                placeholder="Enter description"
+                                value={newItem.description}
+                                onChange={(e) =>
+                                  setNewItem({
+                                    ...newItem,
+                                    description: e.target.value,
+                                  })
+                                }
+                              />
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-3 gap-2">
