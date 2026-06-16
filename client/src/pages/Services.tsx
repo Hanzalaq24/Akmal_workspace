@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Edit2, Download, Eye, DollarSign, Package, FileText, Save } from "lucide-react";
+import { Plus, Trash2, Edit2, Download, Eye, DollarSign, Package, FileText, Save, Share2, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 interface ServiceItem {
@@ -16,6 +16,9 @@ interface ServiceItem {
   unitPrice: number;
   total: number;
   description?: string;
+  hsn: string;
+  discount: number;
+  cess: number;
 }
 
 interface Invoice {
@@ -23,13 +26,22 @@ interface Invoice {
   title: string;
   projectName: string;
   clientName: string;
+  clientAddress: string;
+  clientGstin: string;
+  clientPhone: string;
+  placeOfSupply: string;
   date: string;
   dueDate: string;
   items: ServiceItem[];
   subtotal: number;
   gstPercentage: number;
   gstAmount: number;
+  additionalCharges: number;
+  discount: number;
+  roundOff: number;
+  cess: number;
   total: number;
+  receivedAmount: number;
   status: "draft" | "sent" | "paid";
   notes?: string;
 }
@@ -204,9 +216,12 @@ const formatDateTime = (dateStr: string) => {
           <thead>
             <tr>
               <th>Items/Services</th>
+              <th class="text-right">HSN</th>
               <th class="text-right">Qty.</th>
               <th class="text-right">Rate</th>
+              <th class="text-right">Disc.</th>
               <th class="text-right">Tax</th>
+              <th class="text-right">Cess</th>
               <th class="text-right">Amount</th>
             </tr>
           </thead>
@@ -214,6 +229,7 @@ const formatDateTime = (dateStr: string) => {
             ${invoice.items.map(item => {
               const taxAmt = Math.round(item.total * invoice.gstPercentage / 100);
               const itemGstPct = invoice.gstPercentage;
+              const amtAfterDisc = item.total - (item.discount || 0) + (item.cess || 0);
               return `
               <tr>
                 <td class="item-name">
@@ -221,10 +237,13 @@ const formatDateTime = (dateStr: string) => {
                   ${item.description ? `<br><span class="desc">${item.description}</span>` : ''}
                   ${item.billingType && item.billingType !== 'Fixed' ? `<br><span class="desc">${item.billingType}</span>` : ''}
                 </td>
+                <td class="text-right">${item.hsn || '-'}</td>
                 <td class="text-right">${item.quantity.toLocaleString('en-IN')}</td>
                 <td class="text-right">₹${item.unitPrice.toLocaleString('en-IN')}</td>
+                <td class="text-right">${item.discount ? '₹' + item.discount.toLocaleString('en-IN') : '-'}</td>
                 <td class="tax">₹${taxAmt.toLocaleString('en-IN')}<br>(${itemGstPct}%)</td>
-                <td class="text-right" style="font-weight:600;">₹${(item.total + taxAmt).toLocaleString('en-IN')}</td>
+                <td class="text-right">${item.cess ? '₹' + item.cess.toLocaleString('en-IN') : '-'}</td>
+                <td class="text-right" style="font-weight:600;">₹${amtAfterDisc.toLocaleString('en-IN')}</td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -243,6 +262,10 @@ const formatDateTime = (dateStr: string) => {
               <tr><td>Taxable Amount</td><td>₹ ${taxable.toLocaleString('en-IN')}</td></tr>
               <tr><td>CGST @${halfGstPercent}%</td><td>₹ ${halfGst.toLocaleString('en-IN')}</td></tr>
               <tr><td>SGST @${halfGstPercent}%</td><td>₹ ${halfGst.toLocaleString('en-IN')}</td></tr>
+              ${invoice.cess > 0 ? `<tr><td>Cess</td><td>₹ ${invoice.cess.toLocaleString('en-IN')}</td></tr>` : ''}
+              ${(invoice.additionalCharges || 0) > 0 ? `<tr><td>Additional Charges</td><td>₹ ${(invoice.additionalCharges || 0).toLocaleString('en-IN')}</td></tr>` : ''}
+              ${(invoice.discount || 0) > 0 ? `<tr><td>Discount</td><td style="color:#ef4444">-₹ ${(invoice.discount || 0).toLocaleString('en-IN')}</td></tr>` : ''}
+              ${(invoice.roundOff || 0) > 0 ? `<tr><td>Round Off</td><td>₹ ${(invoice.roundOff || 0).toLocaleString('en-IN')}</td></tr>` : ''}
             </table>
           </div>
 
@@ -253,7 +276,7 @@ const formatDateTime = (dateStr: string) => {
 
           <div class="received-row">
             <span class="r-label">Received Amount</span>
-            <span class="r-value">₹ 0</span>
+            <span class="r-value">₹ ${(invoice.receivedAmount || 0).toLocaleString('en-IN')}</span>
           </div>
 
           <div class="words-row">
@@ -311,7 +334,14 @@ export default function Services() {
     title: "",
     projectName: "",
     clientName: "",
+    clientAddress: "",
+    clientGstin: "",
+    clientPhone: "",
+    placeOfSupply: "Gujarat",
     dueDate: "",
+    additionalCharges: "",
+    discount: "",
+    roundOff: "",
   });
   const [newItem, setNewItem] = useState({
     name: "",
@@ -319,6 +349,9 @@ export default function Services() {
     quantity: "" as any,
     unitPrice: "" as any,
     description: "",
+    hsn: "",
+    discount: "" as any,
+    cess: "" as any,
   });
 
   const handleAddInvoice = () => {
@@ -328,23 +361,32 @@ export default function Services() {
     }
 
     const invoice: Invoice = {
-      id: `INV-${String(Date.now()).slice(-6)}`,
+      id: `INV-${String(invoices.length + 1).padStart(3, '0')}`,
       title: newInvoiceData.title || `${newInvoiceData.projectName} - Invoice`,
       projectName: newInvoiceData.projectName,
       clientName: newInvoiceData.clientName,
+      clientAddress: newInvoiceData.clientAddress,
+      clientGstin: newInvoiceData.clientGstin,
+      clientPhone: newInvoiceData.clientPhone,
+      placeOfSupply: newInvoiceData.placeOfSupply || "Gujarat",
       date: new Date().toISOString(),
       dueDate: newInvoiceData.dueDate,
       items: [],
       subtotal: 0,
       gstPercentage: 18,
       gstAmount: 0,
+      additionalCharges: Number(newInvoiceData.additionalCharges) || 0,
+      discount: Number(newInvoiceData.discount) || 0,
+      roundOff: Number(newInvoiceData.roundOff) || 0,
+      cess: 0,
       total: 0,
+      receivedAmount: 0,
       status: "draft",
     };
 
     setInvoices([...invoices, invoice]);
     setSelectedInvoice(invoice);
-    setNewInvoiceData({ title: "", projectName: "", clientName: "", dueDate: "" });
+    setNewInvoiceData({ title: "", projectName: "", clientName: "", clientAddress: "", clientGstin: "", clientPhone: "", placeOfSupply: "Gujarat", dueDate: "", additionalCharges: "", discount: "", roundOff: "" });
     setIsAddingInvoice(false);
     toast.success("Invoice created successfully");
   };
@@ -373,23 +415,30 @@ export default function Services() {
       unitPrice: price,
       total: qty * price,
       description: newItem.description || "",
+      hsn: newItem.hsn || "",
+      discount: Number(newItem.discount) || 0,
+      cess: Number(newItem.cess) || 0,
     };
 
     const updatedItems = [...selectedInvoice.items, item];
     const subtotal = updatedItems.reduce((sum, i) => sum + i.total, 0);
     const gstAmount = calculateGST(subtotal, selectedInvoice.gstPercentage);
+    const cessTotal = updatedItems.reduce((sum, i) => sum + (i.cess || 0), 0);
+    const discountTotal = updatedItems.reduce((sum, i) => sum + (i.discount || 0), 0);
 
     const updatedInvoice = {
       ...selectedInvoice,
       items: updatedItems,
       subtotal,
       gstAmount,
-      total: subtotal + gstAmount,
+      cess: cessTotal,
+      discount: discountTotal,
+      total: subtotal + gstAmount + cessTotal + (selectedInvoice.additionalCharges || 0) - discountTotal,
     };
 
     setInvoices(invoices.map((inv) => (inv.id === selectedInvoice.id ? updatedInvoice : inv)));
     setSelectedInvoice(updatedInvoice);
-    setNewItem({ name: "", billingType: "Fixed", quantity: "" as any, unitPrice: "" as any, description: "" });
+    setNewItem({ name: "", billingType: "Fixed", quantity: "" as any, unitPrice: "" as any, description: "", hsn: "", discount: "" as any, cess: "" as any });
     toast.success("Item added to invoice");
   };
 
@@ -568,19 +617,112 @@ export default function Services() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Due Date
+                    Client Address
                   </label>
                   <Input
-                    type="date"
-                    value={newInvoiceData.dueDate}
+                    placeholder="Enter client address"
+                    value={newInvoiceData.clientAddress}
                     onChange={(e) =>
-                      setNewInvoiceData({ ...newInvoiceData, dueDate: e.target.value })
+                      setNewInvoiceData({ ...newInvoiceData, clientAddress: e.target.value })
                     }
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Client GSTIN
+                    </label>
+                    <Input
+                      placeholder="22AAAAA0000A1Z5"
+                      value={newInvoiceData.clientGstin}
+                      onChange={(e) =>
+                        setNewInvoiceData({ ...newInvoiceData, clientGstin: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Client Phone
+                    </label>
+                    <Input
+                      placeholder="9876543210"
+                      value={newInvoiceData.clientPhone}
+                      onChange={(e) =>
+                        setNewInvoiceData({ ...newInvoiceData, clientPhone: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Place of Supply
+                    </label>
+                    <Input
+                      placeholder="Gujarat"
+                      value={newInvoiceData.placeOfSupply}
+                      onChange={(e) =>
+                        setNewInvoiceData({ ...newInvoiceData, placeOfSupply: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Due Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={newInvoiceData.dueDate}
+                      onChange={(e) =>
+                        setNewInvoiceData({ ...newInvoiceData, dueDate: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Additional Charges (₹)
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={newInvoiceData.additionalCharges}
+                      onChange={(e) =>
+                        setNewInvoiceData({ ...newInvoiceData, additionalCharges: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Discount (₹)
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={newInvoiceData.discount}
+                      onChange={(e) =>
+                        setNewInvoiceData({ ...newInvoiceData, discount: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Round Off (₹)
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={newInvoiceData.roundOff}
+                      onChange={(e) =>
+                        setNewInvoiceData({ ...newInvoiceData, roundOff: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
                 <Button
                   onClick={handleAddInvoice}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white"
                 >
                   Create Invoice
                 </Button>
@@ -873,7 +1015,10 @@ export default function Services() {
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 mr-2">
                                       {item.billingType || "Fixed"}
                                     </span>
+                                    {item.hsn && <span className="text-xs bg-slate-100 px-1.5 py-0.5 rounded mr-1">HSN: {item.hsn}</span>}
                                     {item.quantity} × ₹{item.unitPrice.toLocaleString('en-IN')}
+                                    {item.discount > 0 && <span className="text-xs text-red-600 ml-1">-₹{item.discount}</span>}
+                                    {item.cess > 0 && <span className="text-xs text-orange-600 ml-1">+₹{item.cess}</span>}
                                   </p>
                                 </>
                               )}
@@ -1016,9 +1161,46 @@ export default function Services() {
                             </div>
                           </div>
 
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                HSN/SAC
+                              </label>
+                              <Input
+                                placeholder="Code"
+                                value={newItem.hsn}
+                                onChange={(e) => setNewItem({ ...newItem, hsn: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Discount (₹)
+                              </label>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={newItem.discount}
+                                onChange={(e) => setNewItem({ ...newItem, discount: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 mb-1">
+                                Cess (₹)
+                              </label>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={newItem.cess}
+                                onChange={(e) => setNewItem({ ...newItem, cess: e.target.value })}
+                              />
+                            </div>
+                          </div>
+
                           <Button
                             onClick={handleAddItem}
-                            className="w-full bg-teal-600 hover:bg-teal-700"
+                            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white"
                           >
                             <Plus className="w-4 h-4 mr-2" />
                             Add Item
@@ -1032,25 +1214,74 @@ export default function Services() {
                 {/* Total */}
                 <Card className="glass bg-gradient-to-r from-indigo-50 to-teal-50">
                   <div className="p-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
                         <p className="text-slate-600">Subtotal</p>
-                        <p className="font-semibold text-slate-900">
+                        <p className="font-medium text-slate-900">
                           ₹{selectedInvoice.subtotal.toLocaleString('en-IN')}
                         </p>
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between text-sm">
                         <p className="text-slate-600">GST ({selectedInvoice.gstPercentage}%)</p>
-                        <p className="font-semibold text-slate-900">
+                        <p className="font-medium text-slate-900">
                           ₹{selectedInvoice.gstAmount.toLocaleString('en-IN')}
                         </p>
                       </div>
+                      {(selectedInvoice.cess || 0) > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <p className="text-slate-600">Cess</p>
+                          <p className="font-medium text-slate-900">₹{selectedInvoice.cess.toLocaleString('en-IN')}</p>
+                        </div>
+                      )}
+                      {(selectedInvoice.additionalCharges || 0) > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <p className="text-slate-600">Additional Charges</p>
+                          <p className="font-medium text-slate-900">₹{selectedInvoice.additionalCharges.toLocaleString('en-IN')}</p>
+                        </div>
+                      )}
+                      {(selectedInvoice.discount || 0) > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <p className="text-slate-600">Discount</p>
+                          <p className="font-medium text-red-600">-₹{selectedInvoice.discount.toLocaleString('en-IN')}</p>
+                        </div>
+                      )}
+                      {(selectedInvoice.roundOff || 0) > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <p className="text-slate-600">Round Off</p>
+                          <p className="font-medium text-slate-900">₹{selectedInvoice.roundOff.toLocaleString('en-IN')}</p>
+                        </div>
+                      )}
                       <div className="border-t border-slate-200 pt-3 flex items-center justify-between">
                         <p className="text-lg font-bold text-slate-900">Total Amount</p>
                         <p className="text-3xl font-bold text-indigo-600">
                           ₹{selectedInvoice.total.toLocaleString('en-IN')}
                         </p>
                       </div>
+                      {(selectedInvoice.receivedAmount || 0) > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <p className="text-slate-600">Received</p>
+                          <p className="font-medium text-green-600">₹{selectedInvoice.receivedAmount.toLocaleString('en-IN')}</p>
+                        </div>
+                      )}
+                    </div>
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      <Button size="sm" variant="outline" onClick={() => generatePDF(selectedInvoice)} className="flex items-center gap-1">
+                        <Printer className="w-3 h-3" /> Print
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => generatePDF(selectedInvoice)} className="flex items-center gap-1">
+                        <Download className="w-3 h-3" /> Download
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => {
+                        const text = `Invoice ${selectedInvoice.id} - ₹${selectedInvoice.total.toLocaleString('en-IN')}`;
+                        const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                        window.open(url, '_blank');
+                      }} className="flex items-center gap-1">
+                        <Share2 className="w-3 h-3" /> Share
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => toast.info("Share Payment Link copied!")} className="flex items-center gap-1">
+                        💳 Pay Link
+                      </Button>
                     </div>
                   </div>
                 </Card>
