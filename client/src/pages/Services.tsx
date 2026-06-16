@@ -46,6 +46,8 @@ const SERVICE_TYPES = [
   { value: "photography", label: "Photography" },
   { value: "consulting", label: "Consulting" },
   { value: "maintenance", label: "Maintenance & Support" },
+  { value: "domain", label: "Domain" },
+  { value: "hosting", label: "Hosting" },
   { value: "other", label: "Other Services" },
 ];
 
