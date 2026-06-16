@@ -224,6 +224,14 @@ export default function Dashboard() {
             <Button 
               variant="ghost" 
               size="sm"
+              onClick={() => setLocation("/items")}
+              className="text-slate-600 hover:text-indigo-600"
+            >
+              📦 Items
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
               onClick={() => setLocation("/services")}
               className="text-slate-600 hover:text-indigo-600"
             >

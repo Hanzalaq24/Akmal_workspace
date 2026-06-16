@@ -14,6 +14,7 @@ import Landing from "./pages/Landing";
 import Services from "./pages/Services";
 import Members from "./pages/Members";
 import SettingsPage from "./pages/Settings";
+import ItemsPage from "./pages/Items";
 
 function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>; path?: string }) {
   const { user } = useAuth();
@@ -46,6 +47,9 @@ function Router() {
       </Route>
       <Route path={"/settings"}>
         <ProtectedRoute component={SettingsPage} />
+      </Route>
+      <Route path={"/items"}>
+        <ProtectedRoute component={ItemsPage} />
       </Route>
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

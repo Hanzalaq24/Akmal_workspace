@@ -320,6 +320,7 @@ export default function ProjectDetail() {
     
     const invoice = {
       id: `INV-${String(Date.now()).slice(-6)}`,
+      title: `${project.name} - Completion Invoice`,
       projectName: project.name,
       clientName: project.client,
       date: new Date().toISOString(),

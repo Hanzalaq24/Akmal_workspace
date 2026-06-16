@@ -67,6 +67,30 @@ const formatDateTime = (dateStr: string) => {
       toast.error("Please select an invoice first");
       return;
     }
+    const halfGst = Math.round(invoice.gstAmount / 2);
+    const halfGstPercent = invoice.gstPercentage / 2;
+    const taxable = invoice.subtotal;
+
+    const numberToWords = (n: number): string => {
+      if (n === 0) return "Zero";
+      const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+      const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+      const conv = (num: number): string => {
+        if (num < 20) return ones[num];
+        if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? " " + ones[num % 10] : "");
+        if (num < 1000) return ones[Math.floor(num / 100)] + " Hundred" + (num % 100 ? " and " + conv(num % 100) : "");
+        if (num < 100000) return conv(Math.floor(num / 1000)) + " Thousand" + (num % 1000 ? " " + conv(num % 1000) : "");
+        if (num < 10000000) return conv(Math.floor(num / 100000)) + " Lakh" + (num % 100000 ? " " + conv(num % 100000) : "");
+        return conv(Math.floor(num / 10000000)) + " Crore" + (num % 10000000 ? " " + conv(num % 10000000) : "");
+      };
+      const rupees = Math.floor(n);
+      const paise = Math.round((n - rupees) * 100);
+      let result = conv(rupees) + " Rupees";
+      if (paise > 0) result += " and " + conv(paise) + " Paise";
+      result += " Only";
+      return result;
+    };
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -74,115 +98,175 @@ const formatDateTime = (dateStr: string) => {
       <meta charset="UTF-8">
       <title>Invoice ${invoice.id}</title>
       <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 40px; border-bottom: 3px solid #4f46e5; padding-bottom: 20px; }
-        .logo { font-size: 28px; font-weight: bold; color: #4f46e5; }
-        .invoice-title { text-align: right; }
-        .invoice-title h1 { margin: 0; font-size: 32px; color: #1f2937; }
-        .invoice-title p { margin: 5px 0; color: #6b7280; }
-        .invoice-details { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
-        .detail-section h3 { margin: 0 0 10px 0; color: #374151; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        .detail-section p { margin: 5px 0; color: #1f2937; font-size: 14px; }
-        table { width: 100%; border-collapse: collapse; margin: 30px 0; }
-        th { background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; }
-        td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
-        tr:last-child td { border-bottom: 2px solid #e5e7eb; }
-        .text-right { text-align: right; }
-        .totals { margin-top: 30px; display: flex; justify-content: flex-end; }
-        .totals-table { width: 400px; }
-        .totals-table tr td { padding: 10px; border: none; }
-        .totals-table tr td:first-child { text-align: right; padding-right: 20px; color: #6b7280; }
-        .totals-table tr td:last-child { text-align: right; font-weight: 600; color: #1f2937; }
-        .total-row { background: #f3f4f6; border-top: 2px solid #e5e7eb; border-bottom: 2px solid #e5e7eb; }
-        .total-row td:last-child { font-size: 18px; color: #4f46e5; }
-        .notes { margin-top: 30px; padding: 15px; background: #f9fafb; border-left: 4px solid #4f46e5; }
-        .notes h4 { margin: 0 0 10px 0; color: #374151; }
-        .notes p { margin: 0; color: #6b7280; font-size: 13px; }
-        .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', Arial, sans-serif; background: #fff; color: #1a1a1a; }
+        .page { width: 210mm; margin: 0 auto; padding: 15mm 20mm; background: white; }
+        
+        /* Header */
+        .header { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 8px; }
+        .logo-area { flex-shrink: 0; width: 110px; height: 110px; }
+        .logo-area svg { width: 110px; height: 110px; }
+        .company-info h1 { font-size: 32px; font-weight: 800; color: #000; margin-bottom: 4px; }
+        .company-info p { font-size: 11px; color: #444; line-height: 1.5; }
+        .company-info .contact { font-size: 11px; color: #444; margin-top: 4px; }
+        
+        /* Invoice Bar */
+        .invoice-bar { background: #333; color: white; padding: 10px 20px; display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin: 12px 0; }
+        
+        /* Bill To / Ship To */
+        .addresses { display: flex; justify-content: space-between; margin: 15px 0; gap: 40px; }
+        .address-section h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #000; margin-bottom: 6px; }
+        .address-section .name { font-size: 16px; font-weight: 700; color: #000; margin-bottom: 4px; }
+        .address-section p { font-size: 11px; color: #444; line-height: 1.6; }
+        
+        /* Table */
+        .items-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .items-table thead th { padding: 10px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #000; border-top: 2px solid #000; border-bottom: 1px solid #ccc; text-align: left; }
+        .items-table thead th.text-right { text-align: right; }
+        .items-table tbody td { padding: 10px 12px; font-size: 12px; color: #1a1a1a; border-bottom: 1px solid #eee; }
+        .items-table tbody td.text-right { text-align: right; }
+        .items-table tbody td.item-name { font-weight: 600; }
+        .items-table tbody td.desc { font-size: 10px; color: #888; }
+        .items-table tbody td.tax { font-size: 10px; color: #666; text-align: right; }
+        
+        /* Subtotal & Totals */
+        .totals-section { margin-top: 20px; border-top: 2px solid #000; }
+        .subtotal-row { display: flex; justify-content: space-between; padding: 12px 0; font-size: 12px; font-weight: 700; border-bottom: 2px solid #000; }
+        .tax-breakdown { display: flex; justify-content: flex-end; padding: 10px 0; }
+        .tax-breakdown table { width: 280px; }
+        .tax-breakdown table td { padding: 4px 0; font-size: 12px; }
+        .tax-breakdown table td:first-child { text-align: right; padding-right: 15px; color: #555; }
+        .tax-breakdown table td:last-child { text-align: right; font-weight: 500; }
+        .total-row-main { display: flex; justify-content: flex-end; padding: 10px 0; border-top: 1px solid #ccc; border-bottom: 2px solid #000; margin: 5px 0; }
+        .total-row-main .total-label { font-weight: 700; font-size: 13px; width: 280px; }
+        .total-row-main .total-label span { padding-right: 15px; }
+        .total-row-main .total-value { text-align: right; font-weight: 800; font-size: 15px; }
+        .received-row { display: flex; justify-content: flex-end; padding: 8px 0; font-size: 12px; }
+        .received-row .r-label { width: 280px; text-align: right; padding-right: 15px; color: #555; }
+        .received-row .r-value { text-align: right; font-weight: 600; }
+        .words-row { display: flex; justify-content: flex-end; padding: 10px 0; margin-top: 10px; border-top: 1px solid #ccc; }
+        .words-row .words-label { text-align: right; padding-right: 15px; font-weight: 700; font-size: 12px; width: 280px; }
+        .words-row .words-value { font-size: 11px; font-weight: 500; }
+        
+        /* Notes */
+        .notes { margin-top: 20px; padding: 10px; background: #f9fafb; border-left: 3px solid #333; font-size: 11px; color: #666; }
+        
+        /* Print */
+        @media print { body { background: white; } .page { padding: 0; width: 100%; } }
       </style>
     </head>
     <body>
-      <div class="container">
+      <div class="page">
+        <!-- Header -->
         <div class="header">
-          <div class="logo">🎯 Akmal Creative Hub</div>
-          <div class="invoice-title">
-            <h1>${invoice.id}</h1>
-            <p>Invoice</p>
+          <div class="logo-area">
+            <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="55" cy="55" r="50" fill="#D4AF37" opacity="0.15"/>
+              <path d="M55 20 C35 35, 20 60, 55 85 C90 60, 75 35, 55 20Z" fill="#B8860B" opacity="0.8"/>
+              <path d="M45 30 C30 48, 25 65, 55 82 C55 65, 48 45, 45 30Z" fill="#D4AF37"/>
+              <path d="M65 30 C80 48, 85 65, 55 82 C55 65, 62 45, 65 30Z" fill="#C5A028"/>
+              <path d="M55 25 L55 82" stroke="#8B7355" stroke-width="1" fill="none"/>
+            </svg>
           </div>
-        </div>
-
-        <div class="invoice-details">
-          <div>
-            <div class="detail-section">
-              <h3>Bill To</h3>
-              <p><strong>${invoice.clientName}</strong></p>
-              <p>${invoice.projectName}</p>
-            </div>
-          </div>
-          <div>
-            <div class="detail-section">
-              <h3>Invoice Details</h3>
-              <p><strong>Invoice Date:</strong> ${formatDateTime(invoice.date)}</p>
-              <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</p>
-              <p><strong>Status:</strong> <span style="text-transform: capitalize; color: ${invoice.status === 'paid' ? '#10b981' : invoice.status === 'sent' ? '#3b82f6' : '#9ca3af'}">${invoice.status}</span></p>
+          <div class="company-info">
+            <h1>Akmal</h1>
+            <p>FF, 11 T P NO 20,0037, CHHIPAVAD, GAMTAL, VARACHHA ROAD, NEAR MASJID, Nana Varachha, Surat, Surat, Gujarat, 395006</p>
+            <div class="contact">
+              <p><strong>Mobile:</strong> 8866795230 &nbsp;&nbsp;&nbsp; <strong>GSTIN:</strong> 24ALUPB9563G1ZR</p>
+              <p><strong>Email:</strong> eakmalsurat@gmail.com</p>
             </div>
           </div>
         </div>
 
-        <table>
+        <!-- Invoice Bar -->
+        <div class="invoice-bar">
+          <span>Invoice No.: ${invoice.id.replace('INV-', '')}</span>
+          <span>Invoice Date: ${new Date(invoice.date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+          <span>Due Date: ${new Date(invoice.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+        </div>
+
+        <!-- Bill To / Ship To -->
+        <div class="addresses">
+          <div class="address-section">
+            <h3>Bill To</h3>
+            <p class="name">${invoice.clientName}</p>
+            <p>${invoice.projectName}</p>
+          </div>
+          <div class="address-section">
+            <h3>Ship To</h3>
+            <p class="name">${invoice.clientName}</p>
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <table class="items-table">
           <thead>
             <tr>
-              <th>Service Details</th>
-              <th>Billing Type</th>
-              <th class="text-right">Quantity</th>
+              <th>Items/Services</th>
+              <th class="text-right">Qty.</th>
               <th class="text-right">Rate</th>
+              <th class="text-right">Tax</th>
               <th class="text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
-            ${invoice.items.map(item => `
+            ${invoice.items.map(item => {
+              const taxAmt = Math.round(item.total * invoice.gstPercentage / 100);
+              const itemGstPct = invoice.gstPercentage;
+              return `
               <tr>
-                <td>
-                  <div style="font-weight: bold; color: #1f2937;">${item.name}</div>
-                  ${item.description ? `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${item.description}</div>` : ''}
+                <td class="item-name">
+                  ${item.name}
+                  ${item.description ? `<br><span class="desc">${item.description}</span>` : ''}
+                  ${item.billingType && item.billingType !== 'Fixed' ? `<br><span class="desc">${item.billingType}</span>` : ''}
                 </td>
-                <td style="color: #4b5563;">${item.billingType || 'Fixed'}</td>
-                <td class="text-right">${item.quantity}</td>
+                <td class="text-right">${item.quantity.toLocaleString('en-IN')}</td>
                 <td class="text-right">₹${item.unitPrice.toLocaleString('en-IN')}</td>
-                <td class="text-right">₹${item.total.toLocaleString('en-IN')}</td>
-              </tr>
-            `).join('')}
+                <td class="tax">₹${taxAmt.toLocaleString('en-IN')}<br>(${itemGstPct}%)</td>
+                <td class="text-right" style="font-weight:600;">₹${(item.total + taxAmt).toLocaleString('en-IN')}</td>
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
 
-        <div class="totals">
-          <table class="totals-table">
-            <tr>
-              <td>Subtotal</td>
-              <td>₹${invoice.subtotal.toLocaleString('en-IN')}</td>
-            </tr>
-            <tr>
-              <td>GST (${invoice.gstPercentage}%)</td>
-              <td>₹${invoice.gstAmount.toLocaleString('en-IN')}</td>
-            </tr>
-            <tr class="total-row">
-              <td><strong>Total Amount</strong></td>
-              <td>₹${invoice.total.toLocaleString('en-IN')}</td>
-            </tr>
-          </table>
+        <!-- Totals -->
+        <div class="totals-section">
+          <div class="subtotal-row">
+            <span>Subtotal</span>
+            <span style="width:280px; text-align:right;">₹ ${taxable.toLocaleString('en-IN')}</span>
+            <span style="width:150px; text-align:right; font-size:15px;">₹ ${invoice.total.toLocaleString('en-IN')}</span>
+          </div>
+          
+          <div class="tax-breakdown">
+            <table>
+              <tr><td>Taxable Amount</td><td>₹ ${taxable.toLocaleString('en-IN')}</td></tr>
+              <tr><td>CGST @${halfGstPercent}%</td><td>₹ ${halfGst.toLocaleString('en-IN')}</td></tr>
+              <tr><td>SGST @${halfGstPercent}%</td><td>₹ ${halfGst.toLocaleString('en-IN')}</td></tr>
+            </table>
+          </div>
+
+          <div class="total-row-main">
+            <div class="total-label"><span>Total Amount</span></div>
+            <div class="total-value">₹ ${invoice.total.toLocaleString('en-IN')}</div>
+          </div>
+
+          <div class="received-row">
+            <span class="r-label">Received Amount</span>
+            <span class="r-value">₹ 0</span>
+          </div>
+
+          <div class="words-row">
+            <div class="words-label">Total Amount (in words)</div>
+            <div class="words-value">${numberToWords(invoice.total)}</div>
+          </div>
         </div>
 
         ${invoice.notes ? `
           <div class="notes">
-            <h4>Notes</h4>
-            <p>${invoice.notes}</p>
+            <strong>Notes:</strong> ${invoice.notes}
           </div>
         ` : ''}
-
-        <div class="footer">
-          <p>Thank you for your business! | Akmal Creative Hub | Generated on ${formatDateTime(new Date().toISOString())}</p>
-        </div>
       </div>
     </body>
     </html>
