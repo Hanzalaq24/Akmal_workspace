@@ -20,6 +20,7 @@ interface ServiceItem {
 
 interface Invoice {
   id: string;
+  title: string;
   projectName: string;
   clientName: string;
   date: string;
@@ -223,6 +224,7 @@ export default function Services() {
   const [isEditingItems, setIsEditingItems] = useState(false);
   const [editingItems, setEditingItems] = useState<ServiceItem[]>([]);
   const [newInvoiceData, setNewInvoiceData] = useState({
+    title: "",
     projectName: "",
     clientName: "",
     dueDate: "",
@@ -243,6 +245,7 @@ export default function Services() {
 
     const invoice: Invoice = {
       id: `INV-${String(Date.now()).slice(-6)}`,
+      title: newInvoiceData.title || `${newInvoiceData.projectName} - Invoice`,
       projectName: newInvoiceData.projectName,
       clientName: newInvoiceData.clientName,
       date: new Date().toISOString(),
@@ -257,7 +260,7 @@ export default function Services() {
 
     setInvoices([...invoices, invoice]);
     setSelectedInvoice(invoice);
-    setNewInvoiceData({ projectName: "", clientName: "", dueDate: "" });
+    setNewInvoiceData({ title: "", projectName: "", clientName: "", dueDate: "" });
     setIsAddingInvoice(false);
     toast.success("Invoice created successfully");
   };
@@ -445,6 +448,18 @@ export default function Services() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Invoice Title
+                  </label>
+                  <Input
+                    placeholder="e.g. Website Development Invoice"
+                    value={newInvoiceData.title}
+                    onChange={(e) =>
+                      setNewInvoiceData({ ...newInvoiceData, title: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Project Name
                   </label>
                   <Input
@@ -543,8 +558,9 @@ export default function Services() {
                     <div className="flex items-start justify-between mb-6">
                       <div>
                         <h2 className="text-2xl font-bold text-slate-900">
-                          {selectedInvoice.id}
+                          {selectedInvoice.title || selectedInvoice.id}
                         </h2>
+                        <p className="text-sm text-slate-500">{selectedInvoice.id}</p>
                         <p className="text-slate-600">{selectedInvoice.projectName}</p>
                       </div>
                       <div className="text-right">
