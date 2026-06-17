@@ -224,7 +224,7 @@ const formatDateTime = (dateStr: string) => {
         <table class="items-table">
           <thead>
             <tr>
-              <th>Items/Services</th>
+              <th>Products / Services</th>
               <th class="text-right">HSN</th>
               <th class="text-right">Qty.</th>
               <th class="text-right">Rate</th>
@@ -1067,26 +1067,61 @@ export default function Services() {
 
                     {!isEditingItems && (
                       <div className="border-t border-slate-200 pt-4">
-                        <h4 className="font-medium text-slate-900 mb-3">Add Service</h4>
+                        <h4 className="font-medium text-slate-900 mb-3">Add Item</h4>
                         <div className="space-y-3">
                           <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">
-                              Service Name
+                              Select from Items or type custom name
                             </label>
-                            <Select value={newItem.name} onValueChange={(value) => setNewItem({ ...newItem, name: value })}>
+                            <Select value={newItem.name} onValueChange={(value) => {
+                              // Load item details from Items page
+                              try {
+                                const savedItems = JSON.parse(localStorage.getItem("akmal-items") || "[]");
+                                const found = savedItems.find((i: any) => i.name === value);
+                                if (found) {
+                                  setNewItem({
+                                    ...newItem,
+                                    name: found.name,
+                                    unitPrice: String(found.salesPrice || ""),
+                                    description: found.description || "",
+                                    hsn: found.hsnOrSac || "",
+                                    cess: String(found.gst || 0),
+                                  });
+                                } else {
+                                  setNewItem({ ...newItem, name: value });
+                                }
+                              } catch {
+                                setNewItem({ ...newItem, name: value });
+                              }
+                            }}>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select service type or enter custom" />
+                                <SelectValue placeholder="Select product/service or enter custom" />
                               </SelectTrigger>
                               <SelectContent>
-                                {SERVICE_TYPES.map((type) => (
-                                  <SelectItem key={type.value} value={type.label}>
-                                    {type.label}
-                                  </SelectItem>
-                                ))}
+                                <SelectItem value="__custom__" disabled>— Custom Name —</SelectItem>
+                                {(() => {
+                                  try {
+                                    const savedItems = JSON.parse(localStorage.getItem("akmal-items") || "[]");
+                                    return savedItems.map((item: any) => (
+                                      <SelectItem key={item.id} value={item.name}>
+                                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium mr-1.5 ${item.itemType === "Product" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
+                                          {item.itemType}
+                                        </span>
+                                        {item.name}
+                                      </SelectItem>
+                                    ));
+                                  } catch {
+                                    return SERVICE_TYPES.map((type) => (
+                                      <SelectItem key={type.value} value={type.label}>
+                                        {type.label}
+                                      </SelectItem>
+                                    ));
+                                  }
+                                })()}
                               </SelectContent>
                             </Select>
                             <Input
-                              placeholder="Or enter custom service name"
+                              placeholder="Or enter custom item name"
                               value={newItem.name}
                               onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                               className="mt-2"
