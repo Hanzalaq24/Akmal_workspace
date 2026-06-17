@@ -85,7 +85,13 @@ app.delete("/api/members/:id", async (req, res) => {
 // ── PROJECTS ───────────────────────────────────────────────
 app.get("/api/projects", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM projects ORDER BY id DESC");
+    const userId = req.query.user_id;
+    let result;
+    if (userId) {
+      result = await pool.query("SELECT * FROM projects WHERE user_id=$1 ORDER BY id DESC", [userId]);
+    } else {
+      result = await pool.query("SELECT * FROM projects ORDER BY id DESC");
+    }
     res.json(result.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -100,11 +106,11 @@ app.get("/api/projects/:id", async (req, res) => {
 
 app.post("/api/projects", async (req, res) => {
   try {
-    const { name, client, types, description, status, deadline, budget, spent, team } = req.body;
+    const { name, client, types, description, status, deadline, budget, spent, team, user_id } = req.body;
     const result = await pool.query(
-      `INSERT INTO projects (name, client, types, description, status, deadline, budget, spent, team) 
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-      [name, client, types || [], description || "", status || "active", deadline || "", budget || 0, spent || 0, team || []]
+      `INSERT INTO projects (name, client, types, description, status, deadline, budget, spent, team, user_id) 
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [name, client, types || [], description || "", status || "active", deadline || "", budget || 0, spent || 0, team || [], user_id || null]
     );
     res.json({ success: true, project: result.rows[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -166,18 +172,24 @@ app.get("/api/projects/:id/tasks", async (req, res) => {
 // ── INVOICES ───────────────────────────────────────────────
 app.get("/api/invoices", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM invoices ORDER BY id DESC");
+    const userId = req.query.user_id;
+    let result;
+    if (userId) {
+      result = await pool.query("SELECT * FROM invoices WHERE user_id=$1 ORDER BY id DESC", [userId]);
+    } else {
+      result = await pool.query("SELECT * FROM invoices ORDER BY id DESC");
+    }
     res.json(result.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post("/api/invoices", async (req, res) => {
   try {
-    const { invoice_no, project_name, client_name, date, due_date, items, subtotal, gst_percentage, gst_amount, total, status, notes } = req.body;
+    const { invoice_no, project_name, client_name, date, due_date, items, subtotal, gst_percentage, gst_amount, total, status, notes, user_id } = req.body;
     const result = await pool.query(
-      `INSERT INTO invoices (invoice_no, project_name, client_name, date, due_date, items, subtotal, gst_percentage, gst_amount, total, status, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
-      [invoice_no, project_name, client_name, date, due_date, JSON.stringify(items || []), subtotal, gst_percentage, gst_amount, total, status, notes || ""]
+      `INSERT INTO invoices (invoice_no, project_name, client_name, date, due_date, items, subtotal, gst_percentage, gst_amount, total, status, notes, user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+      [invoice_no, project_name, client_name, date, due_date, JSON.stringify(items || []), subtotal, gst_percentage, gst_amount, total, status, notes || "", user_id || null]
     );
     res.json({ success: true, invoice: result.rows[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -208,12 +220,110 @@ app.get("/api/chats/:projectId", async (req, res) => {
 
 app.post("/api/chats", async (req, res) => {
   try {
-    const { project_id, text, sender, role, timestamp } = req.body;
+    const { project_id, text, sender, role, timestamp, user_id } = req.body;
     const result = await pool.query(
-      "INSERT INTO chats (project_id, text, sender, role, timestamp) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-      [project_id, text, sender, role, timestamp]
+      "INSERT INTO chats (project_id, text, sender, role, timestamp, user_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
+      [project_id, text, sender, role, timestamp, user_id || null]
     );
     res.json({ success: true, message: result.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── CLIENTS ────────────────────────────────────────────────
+app.get("/api/clients", async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    let result;
+    if (userId) {
+      result = await pool.query("SELECT * FROM clients WHERE user_id=$1 ORDER BY id DESC", [userId]);
+    } else {
+      result = await pool.query("SELECT * FROM clients ORDER BY id DESC");
+    }
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/clients", async (req, res) => {
+  try {
+    const { name, email, phone, address, gstin, pan, place_of_supply, user_id } = req.body;
+    const result = await pool.query(
+      `INSERT INTO clients (name, email, phone, address, gstin, pan, place_of_supply, user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [name, email || "", phone || "", address || "", gstin || "", pan || "", place_of_supply || "", user_id || null]
+    );
+    res.json({ success: true, client: result.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/clients/:id", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM clients WHERE id=$1", [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: "Client not found" });
+    res.json(result.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/clients/:id", async (req, res) => {
+  try {
+    const { name, email, phone, address, gstin, pan, place_of_supply } = req.body;
+    await pool.query(
+      "UPDATE clients SET name=$1, email=$2, phone=$3, address=$4, gstin=$5, pan=$6, place_of_supply=$7 WHERE id=$8",
+      [name, email, phone, address, gstin, pan, place_of_supply, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/clients/:id", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM clients WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PROJECT HISTORY ────────────────────────────────────────
+app.get("/api/project-history", async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    const clientId = req.query.client_id;
+    let query = "SELECT ph.*, c.name as client_name FROM project_history ph LEFT JOIN clients c ON ph.client_id = c.id";
+    const params = [];
+    const conditions = [];
+    if (userId) { params.push(userId); conditions.push(`ph.user_id=$${params.length}`); }
+    if (clientId) { params.push(clientId); conditions.push(`ph.client_id=$${params.length}`); }
+    if (conditions.length > 0) query += " WHERE " + conditions.join(" AND ");
+    query += " ORDER BY ph.id DESC";
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/project-history", async (req, res) => {
+  try {
+    const { user_id, client_id, project_name, status, budget, deadline, description, invoice_id } = req.body;
+    const result = await pool.query(
+      `INSERT INTO project_history (user_id, client_id, project_name, status, budget, deadline, description, invoice_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [user_id || null, client_id || null, project_name, status || "active", budget || 0, deadline || "", description || "", invoice_id || null]
+    );
+    res.json({ success: true, project: result.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── USER PROFILE ───────────────────────────────────────────
+app.get("/api/user-profile/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await pool.query("SELECT id, name, email, created_at FROM users WHERE id=$1", [userId]);
+    const projects = await pool.query("SELECT id, name, client, status, budget, deadline FROM projects WHERE user_id=$1 ORDER BY id DESC", [userId]);
+    const invoices = await pool.query("SELECT id, title, project_name, client_name, total, status, date FROM invoices WHERE user_id=$1 ORDER BY id DESC", [userId]);
+    const clients = await pool.query("SELECT id, name, email, phone FROM clients WHERE user_id=$1 ORDER BY id DESC", [userId]);
+    res.json({
+      user: user.rows[0] || null,
+      projects: projects.rows,
+      invoices: invoices.rows,
+      clients: clients.rows,
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

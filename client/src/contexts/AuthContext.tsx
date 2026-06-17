@@ -14,6 +14,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  dbUserId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -36,6 +37,7 @@ function setCurrentUser(user: User | null) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => getCurrentUser());
   const isAdmin = user?.email === "akmal26426@gmail.com";
+  const dbUserId = user?.id || null;
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
@@ -83,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isAdmin, login, signup, logout, dbUserId }}>
       {children}
     </AuthContext.Provider>
   );
