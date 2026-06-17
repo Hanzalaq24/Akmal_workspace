@@ -344,5 +344,117 @@ app.post("/api/drive-config", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-const PORT = process.env.API_PORT || 3001;
-app.listen(PORT, () => console.log(`API running on port ${PORT}`));
+// ── PAYMENTS ───────────────────────────────────────────────
+app.get("/api/payments", async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    let result;
+    if (userId) {
+      result = await pool.query("SELECT * FROM payments WHERE user_id=$1 ORDER BY id DESC", [userId]);
+    } else {
+      result = await pool.query("SELECT * FROM payments ORDER BY id DESC");
+    }
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/payments", async (req, res) => {
+  try {
+    const { invoice_id, client_name, amount, payment_mode, payment_date, notes, user_id } = req.body;
+    const result = await pool.query(
+      `INSERT INTO payments (invoice_id, client_name, amount, payment_mode, payment_date, notes, user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [invoice_id || null, client_name || "", amount, payment_mode || "cash", payment_date || new Date().toISOString(), notes || "", user_id || null]
+    );
+    // Update invoice status if linked
+    if (invoice_id) {
+      const inv = await pool.query("SELECT total, received_amount FROM invoices WHERE id=$1", [invoice_id]);
+      if (inv.rows.length > 0) {
+        const total = inv.rows[0].total || 0;
+        const prevReceived = inv.rows[0].received_amount || 0;
+        const newReceived = prevReceived + amount;
+        const newStatus = newReceived >= total ? "paid" : "sent";
+        await pool.query("UPDATE invoices SET received_amount=$1, status=$2 WHERE id=$3", [newReceived, newStatus, invoice_id]);
+      }
+    }
+    res.json({ success: true, payment: result.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/payments/:id", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM payments WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PURCHASE ORDERS ────────────────────────────────────────
+app.get("/api/purchase-orders", async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    let result;
+    if (userId) {
+      result = await pool.query("SELECT * FROM purchase_orders WHERE user_id=$1 ORDER BY id DESC", [userId]);
+    } else {
+      result = await pool.query("SELECT * FROM purchase_orders ORDER BY id DESC");
+    }
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/purchase-orders", async (req, res) => {
+  try {
+    const { po_number, supplier_name, date, due_date, items, subtotal, gst_amount, total, status, notes, user_id } = req.body;
+    const result = await pool.query(
+      `INSERT INTO purchase_orders (po_number, supplier_name, date, due_date, items, subtotal, gst_amount, total, status, notes, user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [po_number, supplier_name || "", date || new Date().toISOString(), due_date || "", JSON.stringify(items || []), subtotal || 0, gst_amount || 0, total || 0, status || "draft", notes || "", user_id || null]
+    );
+    res.json({ success: true, po: result.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/purchase-orders/:id", async (req, res) => {
+  try {
+    const { status, items, subtotal, gst_amount, total } = req.body;
+    if (status) await pool.query("UPDATE purchase_orders SET status=$1 WHERE id=$2", [status, req.params.id]);
+    if (items) await pool.query("UPDATE purchase_orders SET items=$1, subtotal=$2, gst_amount=$3, total=$4 WHERE id=$5", [JSON.stringify(items), subtotal, gst_amount, total, req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/purchase-orders/:id", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM purchase_orders WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── DASHBOARD STATS ────────────────────────────────────────
+app.get("/api/dashboard-stats", async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    const filter = userId ? "WHERE user_id=$1" : "";
+    const params = userId ? [userId] : [];
+    
+    const totalInvoices = await pool.query(`SELECT COUNT(*) as count, COALESCE(SUM(total),0) as total_amount, COALESCE(SUM(received_amount),0) as total_received FROM invoices ${filter}`, params);
+    const totalProjects = await pool.query(`SELECT COUNT(*) as count FROM projects ${filter}`, params);
+    const totalClients = await pool.query(`SELECT COUNT(*) as count FROM clients ${filter}`, params);
+    const totalPayments = await pool.query(`SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total_amount FROM payments ${filter}`, params);
+    const pendingInvoices = await pool.query(`SELECT COUNT(*) as count, COALESCE(SUM(total - received_amount),0) as total_outstanding FROM invoices WHERE status != 'paid' ${userId ? 'AND user_id=$1' : ''}`, params);
+    const recentInvoices = await pool.query(`SELECT id, title, client_name, total, status, date FROM invoices ${filter} ORDER BY id DESC LIMIT 5`, params);
+    
+    res.json({
+      totalInvoices: totalInvoices.rows[0].count,
+      totalRevenue: totalInvoices.rows[0].total_amount,
+      totalReceived: totalInvoices.rows[0].total_received,
+      totalProjects: totalProjects.rows[0].count,
+      totalClients: totalClients.rows[0].count,
+      totalPayments: totalPayments.rows[0].count,
+      totalPaymentsAmount: totalPayments.rows[0].total_amount,
+      pendingInvoices: pendingInvoices.rows[0].count,
+      totalOutstanding: pendingInvoices.rows[0].total_outstanding,
+      recentInvoices: recentInvoices.rows,
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});

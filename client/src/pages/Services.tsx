@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Edit2, Download, Eye, DollarSign, Package, FileText, Save, Share2, Printer } from "lucide-react";
+import { Plus, Trash2, Edit2, Download, Eye, DollarSign, Package, FileText, Save, Share2, Printer, CreditCard, TrendingUp, Users } from "lucide-react";
 import { toast } from "sonner";
 
 interface ServiceItem {
@@ -339,6 +340,17 @@ export default function Services() {
   const [isAddingInvoice, setIsAddingInvoice] = useState(false);
   const [isEditingItems, setIsEditingItems] = useState(false);
   const [editingItems, setEditingItems] = useState<ServiceItem[]>([]);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMode, setPaymentMode] = useState("cash");
+  const [paymentNotes, setPaymentNotes] = useState("");
+  const [payments, setPayments] = useState<any[]>(() => {
+    try { return JSON.parse(localStorage.getItem("akmal-payments") || "[]"); } catch { return []; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("akmal-payments", JSON.stringify(payments));
+  }, [payments]);
   const [newInvoiceData, setNewInvoiceData] = useState({
     title: "",
     projectName: "",
@@ -576,6 +588,43 @@ export default function Services() {
         return "bg-gray-100 text-gray-700";
     }
   };
+
+  const handleRecordPayment = () => {
+    if (!selectedInvoice) return;
+    const amount = Number(paymentAmount);
+    if (amount <= 0) { toast.error("Enter a valid amount"); return; }
+
+    const payment = {
+      id: String(Date.now()),
+      invoiceId: selectedInvoice.id,
+      clientName: selectedInvoice.clientName,
+      amount,
+      mode: paymentMode,
+      date: new Date().toISOString(),
+      notes: paymentNotes,
+    };
+    setPayments([payment, ...payments]);
+
+    // Update invoice received amount and status
+    const newReceived = (selectedInvoice.receivedAmount || 0) + amount;
+    const newStatus: "draft" | "sent" | "paid" = newReceived >= selectedInvoice.total ? "paid" : "sent";
+    const updatedInvoice = { ...selectedInvoice, receivedAmount: newReceived, status: newStatus };
+    setInvoices(invoices.map(inv => inv.id === selectedInvoice.id ? updatedInvoice : inv));
+    setSelectedInvoice(updatedInvoice);
+
+    setPaymentAmount("");
+    setPaymentMode("cash");
+    setPaymentNotes("");
+    setShowPaymentDialog(false);
+    toast.success(`₹${amount.toLocaleString('en-IN')} payment recorded`);
+  };
+
+  const getOutstandingAmount = (invoice: Invoice) => {
+    return Math.max(0, invoice.total - (invoice.receivedAmount || 0));
+  };
+
+  const totalOutstanding = invoices.reduce((sum, inv) => sum + getOutstandingAmount(inv), 0);
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -1333,9 +1382,14 @@ export default function Services() {
                       }} className="flex items-center gap-1">
                         <Share2 className="w-3 h-3" /> Share
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => toast.info("Share Payment Link copied!")} className="flex items-center gap-1">
-                        💳 Pay Link
-                      </Button>
+                      {getOutstandingAmount(selectedInvoice) > 0 && (
+                        <Button size="sm" onClick={() => {
+                          setPaymentAmount(String(getOutstandingAmount(selectedInvoice)));
+                          setShowPaymentDialog(true);
+                        }} className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white col-span-2 sm:col-span-1">
+                          <CreditCard className="w-3 h-3" /> Record Payment (₹{getOutstandingAmount(selectedInvoice).toLocaleString('en-IN')})
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -1351,6 +1405,44 @@ export default function Services() {
           </div>
         </div>
       </div>
+
+      {/* Record Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="glass sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Record Payment</DialogTitle>
+            <DialogDescription>
+              Invoice: {selectedInvoice?.id} | Outstanding: ₹{selectedInvoice ? getOutstandingAmount(selectedInvoice).toLocaleString('en-IN') : 0}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Amount (₹)</Label>
+              <Input type="number" placeholder="0" className="glass-sm" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Payment Mode</Label>
+              <Select value={paymentMode} onValueChange={setPaymentMode}>
+                <SelectTrigger className="glass-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="cheque">Cheque</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notes (Optional)</Label>
+              <Input placeholder="Payment reference" className="glass-sm" value={paymentNotes} onChange={(e) => setPaymentNotes(e.target.value)} />
+            </div>
+            <Button onClick={handleRecordPayment} className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white">
+              <CreditCard className="w-4 h-4 mr-2" /> Record Payment
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
