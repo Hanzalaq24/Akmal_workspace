@@ -240,6 +240,14 @@ export default function Dashboard() {
             <Button 
               variant="ghost" 
               size="sm"
+              onClick={() => setLocation("/purchase-orders")}
+              className="text-slate-600 hover:text-indigo-600 shrink-0"
+            >
+              📋 <span className="hidden sm:inline">PO</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
               onClick={() => setLocation("/services")}
               className="text-slate-600 hover:text-indigo-600 shrink-0"
             >
