@@ -35,6 +35,7 @@ interface Item {
   showInStore: boolean;
   image: string;
   customFields: { label: string; value: string }[];
+  partyWisePrices: { clientId: string; clientName: string; price: number }[];
 }
 
 const CATEGORIES = ["No Category", "Visiting Card", "Stickers Job", "Brochures", "Flyers", "Banners", "Wedding Cards", "Gift Items"];
@@ -61,6 +62,9 @@ export default function ItemsPage() {
     } catch { return CATEGORIES; }
   });
   const [newCategory, setNewCategory] = useState("");
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+  const [selectedParty, setSelectedParty] = useState("");
+  const [partyPrice, setPartyPrice] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -83,6 +87,7 @@ export default function ItemsPage() {
     showInStore: true,
     image: "",
     customFields: [] as { label: string; value: string }[],
+    partyWisePrices: [] as { clientId: string; clientName: string; price: number }[],
   });
 
   useEffect(() => {
@@ -93,16 +98,27 @@ export default function ItemsPage() {
     localStorage.setItem("akmal-item-categories", JSON.stringify(categories));
   }, [categories]);
 
+  useEffect(() => {
+    if (showAddDialog) {
+      try {
+        const saved = localStorage.getItem("akmal-clients");
+        if (saved) setClients(JSON.parse(saved));
+      } catch { /* ignore */ }
+    }
+  }, [showAddDialog]);
+
   const resetForm = () => {
     setForm({
       name: "", itemType: "Product", unit: "PCS", salesPrice: "", salesPriceTax: "Without Tax",
       purchasePrice: "", purchasePriceTax: "Without Tax", gst: "None", hsnOrSac: "",
       discount: "", openingStock: "", asOfDate: "", itemCode: "", barcode: "",
       lowStockAlert: false, category: "No Category", description: "", showInStore: true,
-      image: "", customFields: [],
+      image: "", customFields: [], partyWisePrices: [],
     });
     setEditingItem(null);
     setActiveTab("pricing");
+    setSelectedParty("");
+    setPartyPrice("");
   };
 
   const openEdit = (item: Item) => {
@@ -115,7 +131,7 @@ export default function ItemsPage() {
       discount: String(item.discount || ""), openingStock: String(item.openingStock || ""),
       asOfDate: item.asOfDate, itemCode: item.itemCode, barcode: item.barcode,
       lowStockAlert: item.lowStockAlert, category: item.category, description: item.description,
-      showInStore: item.showInStore, image: item.image, customFields: item.customFields || [],
+      showInStore: item.showInStore, image: item.image, customFields: item.customFields || [], partyWisePrices: item.partyWisePrices || [],
     });
     setShowAddDialog(true);
   };
@@ -175,6 +191,7 @@ export default function ItemsPage() {
         showInStore: form.showInStore,
         image: form.image,
         customFields: form.customFields,
+        partyWisePrices: form.partyWisePrices,
       };
       setItems([newItem, ...items]);
       toast.success("Item saved");
@@ -195,6 +212,20 @@ export default function ItemsPage() {
 
   const formatPrice = (n: number) => n ? `₹${n.toLocaleString('en-IN')}` : "-";
 
+  const addPartyPrice = () => {
+    const client = clients.find(c => c.id === selectedParty);
+    if (!client || !partyPrice) { toast.error("Select a party and enter a price"); return; }
+    if (form.partyWisePrices.some(pp => pp.clientId === selectedParty)) { toast.error("Party already added"); return; }
+    setForm({ ...form, partyWisePrices: [...form.partyWisePrices, { clientId: client.id, clientName: client.name, price: Number(partyPrice) }] });
+    setSelectedParty(""); setPartyPrice("");
+    toast.success("Party-wise price added");
+  };
+
+  const removePartyPrice = (idx: number) => {
+    setForm({ ...form, partyWisePrices: form.partyWisePrices.filter((_, i) => i !== idx) });
+    toast.success("Removed");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/20 to-white">
       <header className="sticky top-0 z-40 glass border-b border-white/20">
@@ -211,17 +242,17 @@ export default function ItemsPage() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-2">
             <Package className="w-5 h-5 text-slate-600" />
             <span className="text-sm text-slate-600">{items.length} items</span>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowCategoryDialog(true)}>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={() => setShowCategoryDialog(true)} className="flex-1 sm:flex-none justify-center">
               <Settings className="w-4 h-4 mr-1" /> Categories
             </Button>
-            <Button onClick={() => { resetForm(); setShowAddDialog(true); }} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+            <Button onClick={() => { resetForm(); setShowAddDialog(true); }} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white flex-1 sm:flex-none justify-center">
               <Plus className="w-4 h-4 mr-2" /> New Item
             </Button>
           </div>
@@ -234,24 +265,24 @@ export default function ItemsPage() {
             <p className="text-sm mt-1">Create your first product or service.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {items.map(item => (
-              <Card key={item.id} className="glass rounded-2xl p-5 hover-lift">
+              <Card key={item.id} className="glass rounded-2xl p-4 sm:p-5 hover-lift">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     {item.image ? (
-                      <img src={item.image} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                      <img src={item.image} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover shrink-0" />
                     ) : (
-                      <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
-                        {item.itemType === "Product" ? <Package className="w-6 h-6 text-slate-400" /> : <FileText className="w-6 h-6 text-slate-400" />}
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
+                        {item.itemType === "Product" ? <Package className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400" /> : <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400" />}
                       </div>
                     )}
-                    <div>
-                      <h3 className="font-semibold text-slate-900 text-sm">{item.name}</h3>
-                      <p className="text-xs text-slate-500">{item.category} • {item.itemType}</p>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-slate-900 text-sm truncate">{item.name}</h3>
+                      <p className="text-xs text-slate-500 truncate">{item.category} • {item.itemType}</p>
                     </div>
                   </div>
-                  <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => handleDelete(item.id)}>
+                  <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600 shrink-0" onClick={() => handleDelete(item.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -265,7 +296,7 @@ export default function ItemsPage() {
                   )}
                   {item.discount > 0 && <p className="text-green-600">Discount: {item.discount}%</p>}
                 </div>
-                <Button size="sm" variant="outline" className="w-full mt-3" onClick={() => openEdit(item)}>
+                <Button size="sm" variant="outline" className="w-full mt-3 h-9" onClick={() => openEdit(item)}>
                   <FileText className="w-3 h-3 mr-1" /> Edit
                 </Button>
               </Card>
@@ -276,24 +307,24 @@ export default function ItemsPage() {
 
       {/* Add/Edit Item Dialog */}
       <Dialog open={showAddDialog} onOpenChange={(o) => { setShowAddDialog(o); if (!o) resetForm(); }}>
-        <DialogContent className="glass sm:max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingItem ? "Edit Item" : "Create New Item"}</DialogTitle>
-            <DialogDescription>Fill in the details for your product or service.</DialogDescription>
+        <DialogContent className="glass w-[calc(100vw-1rem)] sm:w-full sm:max-w-xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg sm:text-xl">{editingItem ? "Edit Item" : "Create New Item"}</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">Fill in the details for your product or service.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="itemName">Item Name *</Label>
-              <Input id="itemName" placeholder="Ex: Kissan Fruit Jam 500 gm" className="glass-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <Label htmlFor="itemName" className="text-sm">Item Name *</Label>
+              <Input id="itemName" placeholder="Ex: Kissan Fruit Jam 500 gm" className="glass-sm h-10" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
 
             <div className="space-y-2">
-              <Label>Item Type</Label>
+              <Label className="text-sm">Item Type</Label>
               <div className="flex gap-2">
                 {(["Product", "Service"] as const).map(type => (
                   <button key={type} onClick={() => setForm({ ...form, itemType: type, openingStock: "", barcode: "", itemCode: "", lowStockAlert: false })}
-                    className={`px-6 py-2 rounded-full text-sm font-medium border-2 transition-all ${form.itemType === type ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
+                    className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-full text-sm font-medium border-2 transition-all ${form.itemType === type ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
                     {type}
                   </button>
                 ))}
@@ -301,25 +332,25 @@ export default function ItemsPage() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="pricing">Pricing</TabsTrigger>
-                {form.itemType === "Product" && <TabsTrigger value="stock">Stock</TabsTrigger>}
-                <TabsTrigger value="other">Other</TabsTrigger>
-                <TabsTrigger value="partywise">Party Wise Prices</TabsTrigger>
+              <TabsList className="w-full h-auto flex-wrap sm:flex-nowrap justify-start gap-1 bg-slate-100/50 p-1">
+                <TabsTrigger value="pricing" className="text-xs sm:text-sm flex-1 sm:flex-none">Pricing</TabsTrigger>
+                {form.itemType === "Product" && <TabsTrigger value="stock" className="text-xs sm:text-sm flex-1 sm:flex-none">Stock</TabsTrigger>}
+                <TabsTrigger value="other" className="text-xs sm:text-sm flex-1 sm:flex-none">Other</TabsTrigger>
+                <TabsTrigger value="partywise" className="text-xs sm:text-sm flex-1 sm:flex-none">Party Wise</TabsTrigger>
               </TabsList>
 
               {/* Pricing Tab */}
-              <TabsContent value="pricing" className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Unit</Label>
-                  <Input placeholder="PCS" className="glass-sm" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
+              <TabsContent value="pricing" className="space-y-3 sm:space-y-4 mt-2">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">Unit</Label>
+                  <Input placeholder="PCS" className="glass-sm h-10" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
                 </div>
-                <div className="space-y-2">
-                  <Label>Sales Price</Label>
-                  <div className="flex gap-2">
-                    <Input type="number" placeholder="0" className="glass-sm flex-1" value={form.salesPrice} onChange={(e) => setForm({ ...form, salesPrice: e.target.value })} />
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">Sales Price</Label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input type="number" placeholder="0" className="glass-sm flex-1 h-10" value={form.salesPrice} onChange={(e) => setForm({ ...form, salesPrice: e.target.value })} />
                     <Select value={form.salesPriceTax} onValueChange={(v) => setForm({ ...form, salesPriceTax: v as any })}>
-                      <SelectTrigger className="w-36 glass-sm"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-full sm:w-36 glass-sm h-10"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Without Tax">Without Tax</SelectItem>
                         <SelectItem value="With Tax">With Tax</SelectItem>
@@ -328,12 +359,12 @@ export default function ItemsPage() {
                   </div>
                 </div>
                 {form.itemType === "Product" && (
-                  <div className="space-y-2">
-                    <Label>Purchase Price</Label>
-                    <div className="flex gap-2">
-                      <Input type="number" placeholder="0" className="glass-sm flex-1" value={form.purchasePrice} onChange={(e) => setForm({ ...form, purchasePrice: e.target.value })} />
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-sm">Purchase Price</Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input type="number" placeholder="0" className="glass-sm flex-1 h-10" value={form.purchasePrice} onChange={(e) => setForm({ ...form, purchasePrice: e.target.value })} />
                       <Select value={form.purchasePriceTax} onValueChange={(v) => setForm({ ...form, purchasePriceTax: v as any })}>
-                        <SelectTrigger className="w-36 glass-sm"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-full sm:w-36 glass-sm h-10"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Without Tax">Without Tax</SelectItem>
                           <SelectItem value="With Tax">With Tax</SelectItem>
@@ -342,56 +373,58 @@ export default function ItemsPage() {
                     </div>
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label>GST</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">GST</Label>
                   <Select value={form.gst} onValueChange={(v) => setForm({ ...form, gst: v })}>
-                    <SelectTrigger className="glass-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="glass-sm h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {GST_OPTIONS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>{form.itemType === "Product" ? "HSN" : "SAC"}</Label>
-                  <Input placeholder="Ex: 6704" className="glass-sm" value={form.hsnOrSac} onChange={(e) => setForm({ ...form, hsnOrSac: e.target.value })} />
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">{form.itemType === "Product" ? "HSN" : "SAC"}</Label>
+                  <Input placeholder="Ex: 6704" className="glass-sm h-10" value={form.hsnOrSac} onChange={(e) => setForm({ ...form, hsnOrSac: e.target.value })} />
                 </div>
-                <div className="space-y-2">
-                  <Label>Discount on Sales Price %</Label>
-                  <div className="relative">
-                    <Input type="number" placeholder="10%" className="glass-sm pr-8" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
+                {form.itemType === "Product" && (
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-sm">Discount on Sales Price %</Label>
+                    <div className="relative">
+                      <Input type="number" placeholder="10%" className="glass-sm pr-8 h-10" value={form.discount} onChange={(e) => setForm({ ...form, discount: e.target.value })} />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </TabsContent>
 
               {/* Stock Tab */}
-              <TabsContent value="stock" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Opening Stock</Label>
+              <TabsContent value="stock" className="space-y-3 sm:space-y-4 mt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-sm">Opening Stock</Label>
                     <div className="flex items-center gap-1">
-                      <Input type="number" placeholder="35" className="glass-sm flex-1" value={form.openingStock} onChange={(e) => setForm({ ...form, openingStock: e.target.value })} />
-                      <span className="text-sm text-slate-500">/{form.unit || "PCS"}</span>
+                      <Input type="number" placeholder="35" className="glass-sm flex-1 h-10" value={form.openingStock} onChange={(e) => setForm({ ...form, openingStock: e.target.value })} />
+                      <span className="text-sm text-slate-500 whitespace-nowrap">/{form.unit || "PCS"}</span>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>As of Date</Label>
-                    <Input type="date" className="glass-sm" value={form.asOfDate} onChange={(e) => setForm({ ...form, asOfDate: e.target.value })} />
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-sm">As of Date</Label>
+                    <Input type="date" className="glass-sm h-10" value={form.asOfDate} onChange={(e) => setForm({ ...form, asOfDate: e.target.value })} />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Item Code</Label>
-                  <Input placeholder="Ex: 1189993849345" className="glass-sm" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} />
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">Item Code</Label>
+                  <Input placeholder="Ex: 1189993849345" className="glass-sm h-10" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" onClick={generateBarcode} className="gap-2"><Hash className="w-4 h-4" /> Generate Barcode</Button>
-                  <Button variant="outline" onClick={() => toast.info("Barcode scanner coming soon")} className="gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  <Button variant="outline" onClick={generateBarcode} className="gap-2 h-10"><Hash className="w-4 h-4" /> Generate Barcode</Button>
+                  <Button variant="outline" onClick={() => toast.info("Barcode scanner coming soon")} className="gap-2 h-10">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h2v4m-4-4h8m-4 0v-6m0 0V4m0 4h4" /></svg>
                     Scan Barcode
                   </Button>
                 </div>
                 {form.barcode && <p className="text-xs text-slate-500">Barcode: <span className="font-mono">{form.barcode}</span></p>}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between py-1">
                   <div className="flex items-center gap-2">
                     <Bell className="w-4 h-4 text-slate-500" />
                     <Label className="text-sm">Low stock alert</Label>
@@ -401,75 +434,113 @@ export default function ItemsPage() {
               </TabsContent>
 
               {/* Other Tab */}
-              <TabsContent value="other" className="space-y-4">
-                <div className="space-y-2">
+              <TabsContent value="other" className="space-y-3 sm:space-y-4 mt-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Add Image</label>
-                  <label className="block border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-indigo-300 transition-colors">
+                  <label className="block border-2 border-dashed border-slate-200 rounded-xl p-6 sm:p-8 text-center cursor-pointer hover:border-indigo-300 transition-colors">
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                     {form.image ? (
-                      <img src={form.image} alt="" className="w-20 h-20 mx-auto rounded-lg object-cover" />
+                      <img src={form.image} alt="" className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-lg object-cover" />
                     ) : (
                       <>
-                        <Camera className="w-8 h-8 mx-auto text-slate-400 mb-2" />
-                        <p className="text-sm text-slate-500">Add Image</p>
+                        <Camera className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-slate-400 mb-2" />
+                        <p className="text-xs sm:text-sm text-slate-500">Add Image</p>
                       </>
                     )}
                   </label>
                 </div>
-                <div className="space-y-2">
-                  <Label>Item Category</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">Item Category</Label>
                   <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                    <SelectTrigger className="glass-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="glass-sm h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Custom Fields</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">Custom Fields</Label>
                   {form.customFields.map((field, idx) => (
-                    <div key={idx} className="flex gap-2 mb-2">
-                      <Input placeholder="Label" className="glass-sm flex-1" value={field.label} onChange={(e) => {
+                    <div key={idx} className="flex flex-col sm:flex-row gap-2 mb-2">
+                      <Input placeholder="Label" className="glass-sm flex-1 h-10" value={field.label} onChange={(e) => {
                         const newFields = [...form.customFields]; newFields[idx] = { ...field, label: e.target.value }; setForm({ ...form, customFields: newFields });
                       }} />
-                      <Input placeholder="Value" className="glass-sm flex-1" value={field.value} onChange={(e) => {
+                      <Input placeholder="Value" className="glass-sm flex-1 h-10" value={field.value} onChange={(e) => {
                         const newFields = [...form.customFields]; newFields[idx] = { ...field, value: e.target.value }; setForm({ ...form, customFields: newFields });
                       }} />
-                      <Button size="sm" variant="ghost" className="text-red-500" onClick={() => {
+                      <Button size="sm" variant="ghost" className="text-red-500 h-10 w-full sm:w-auto" onClick={() => {
                         setForm({ ...form, customFields: form.customFields.filter((_, i) => i !== idx) });
                       }}><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   ))}
-                  <Button size="sm" variant="outline" onClick={() => setForm({ ...form, customFields: [...form.customFields, { label: "", value: "" }] })}>
+                  <Button size="sm" variant="outline" className="w-full sm:w-auto h-10" onClick={() => setForm({ ...form, customFields: [...form.customFields, { label: "", value: "" }] })}>
                     <Plus className="w-3 h-3 mr-1" /> Add Fields to Item
                   </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label>Item Description</Label>
-                  <Textarea placeholder="Ex: 100% Real Mixed Fruit Jam" className="glass-sm" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-sm">Item Description</Label>
+                  <Textarea placeholder="Ex: 100% Real Mixed Fruit Jam" className="glass-sm min-h-[80px]" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 py-1">
                   <Checkbox checked={form.showInStore} onCheckedChange={(v) => setForm({ ...form, showInStore: v as boolean })} />
                   <Label className="text-sm">Show in Online Store</Label>
                 </div>
               </TabsContent>
 
               {/* Party Wise Prices Tab */}
-              <TabsContent value="partywise" className="space-y-4">
-                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                  <DollarSign className="w-12 h-12 mb-3 opacity-20" />
-                  <p className="text-sm text-center max-w-xs">
-                    To enable Party Wise Prices and set custom prices for parties, please save the item first.
-                  </p>
-                </div>
+              <TabsContent value="partywise" className="space-y-3 sm:space-y-4 mt-2">
+                {!editingItem ? (
+                  <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-slate-400">
+                    <DollarSign className="w-10 h-10 sm:w-12 sm:h-12 mb-3 opacity-20" />
+                    <p className="text-xs sm:text-sm text-center max-w-xs px-4">
+                      To enable Party Wise Prices and set custom prices for parties, please save the item first.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                      <div className="flex-1 space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">Select Party</Label>
+                        <Select value={selectedParty} onValueChange={setSelectedParty}>
+                          <SelectTrigger className="glass-sm h-10"><SelectValue placeholder="Select a party" /></SelectTrigger>
+                          <SelectContent>
+                            {clients.length === 0 && <SelectItem value="-" disabled>No parties available</SelectItem>}
+                            {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-full sm:w-28 space-y-1.5 sm:space-y-2">
+                        <Label className="text-sm">Price (₹)</Label>
+                        <Input type="number" placeholder="0" className="glass-sm h-10" value={partyPrice} onChange={(e) => setPartyPrice(e.target.value)} />
+                      </div>
+                      <Button type="button" variant="outline" className="h-10 w-full sm:w-auto" onClick={addPartyPrice}><Plus className="w-4 h-4" /></Button>
+                    </div>
+
+                    {form.partyWisePrices.length === 0 ? (
+                      <p className="text-xs sm:text-sm text-slate-400 text-center py-4">No custom prices set yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {form.partyWisePrices.map((pp, idx) => (
+                          <div key={idx} className="flex justify-between items-center p-2.5 sm:p-3 bg-slate-50 rounded-lg">
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{pp.clientName}</p>
+                              <p className="text-xs text-slate-500">₹{pp.price.toLocaleString("en-IN")}</p>
+                            </div>
+                            <Button size="sm" variant="ghost" className="text-red-500 shrink-0" onClick={() => removePartyPrice(idx)}><Trash2 className="w-4 h-4" /></Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-between items-center pt-4 border-t border-slate-200">
-              <Button variant="ghost" onClick={() => handleSave(true)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-0 pt-4 border-t border-slate-200">
+              <Button variant="ghost" className="w-full sm:w-auto h-11" onClick={() => handleSave(true)}>
                 Save & New
               </Button>
-              <Button onClick={() => handleSave(false)} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-8">
+              <Button onClick={() => handleSave(false)} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-8 w-full sm:w-auto h-11">
                 Save
               </Button>
             </div>
@@ -479,24 +550,24 @@ export default function ItemsPage() {
 
       {/* Category Dialog */}
       <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
-        <DialogContent className="glass sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Item Category</DialogTitle>
+        <DialogContent className="glass w-[calc(100vw-1rem)] sm:w-full sm:max-w-md p-4 sm:p-6">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-lg sm:text-xl">Select Item Category</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <Button variant="outline" className="w-full justify-center gap-2" onClick={() => { if (newCategory.trim()) { setCategories([...categories, newCategory.trim()]); setNewCategory(""); toast.success("Category added"); } }}>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            <Button variant="outline" className="w-full justify-center gap-2 h-10" onClick={() => { if (newCategory.trim()) { setCategories([...categories, newCategory.trim()]); setNewCategory(""); toast.success("Category added"); } }}>
               <Plus className="w-4 h-4" /> Add Category
             </Button>
-            <Input placeholder="New category name" className="glass-sm" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} onKeyDown={(e) => e.key === "Enter" && document.querySelector<HTMLButtonElement>('[data-add-cat]')?.click()} />
+            <Input placeholder="New category name" className="glass-sm h-10" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} onKeyDown={(e) => e.key === "Enter" && document.querySelector<HTMLButtonElement>('[data-add-cat]')?.click()} />
             <div className="divide-y">
               {categories.map((cat, idx) => (
-                <div key={cat} className="flex items-center justify-between py-3 px-1">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm">
-                    <input type="radio" name="cat" className="w-4 h-4 accent-indigo-600" checked={form.category === cat} onChange={() => setForm({ ...form, category: cat })} />
-                    {cat}
+                <div key={cat} className="flex items-center justify-between py-2.5 sm:py-3 px-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm min-w-0">
+                    <input type="radio" name="cat" className="w-4 h-4 accent-indigo-600 shrink-0" checked={form.category === cat} onChange={() => setForm({ ...form, category: cat })} />
+                    <span className="truncate">{cat}</span>
                   </label>
                   {idx > 2 && (
-                    <Button size="sm" variant="ghost" className="text-red-500" onClick={() => {
+                    <Button size="sm" variant="ghost" className="text-red-500 shrink-0" onClick={() => {
                       if (form.category === cat) setForm({ ...form, category: "No Category" });
                       setCategories(categories.filter((_, i) => i !== idx));
                     }}><Trash2 className="w-3 h-3" /></Button>

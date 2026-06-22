@@ -458,3 +458,6 @@ app.get("/api/dashboard-stats", async (req, res) => {
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+const PORT = process.env.API_PORT || 3001;
+app.listen(PORT, () => console.log(`API running on port \${PORT}`));
