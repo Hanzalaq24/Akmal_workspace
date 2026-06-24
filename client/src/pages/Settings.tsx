@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   // Company Profile
-  const defaultCompany = { companyName: "Akmal", address: "FF, 11 T P NO 20,0037, CHHIPAVAD, GAMTAL, VARACHHA ROAD, NEAR MASJID, Nana Varachha, Surat, Gujarat, 395006", mobile: "8866795230", gstin: "24ALUPB9563G1ZR", email: "eakmalsurat@gmail.com", pan: "" };
+  const defaultCompany = { companyName: "Akmal", address: "FF, 11 T P NO 20,0037, CHHIPAVAD, GAMTAL, VARACHHA ROAD, NEAR MASJID, Nana Varachha, Surat, Gujarat, 395006", mobile: "8866795230", gstin: "24ALUPB9563G1ZR", email: "eakmalsurat@gmail.com", pan: "", bankName: "SBI", bankAccountName: "Abdulkarim Mohamad Afazal Bharucha", bankAccountNo: "32986992982", bankIfsc: "SBIN0011050", upiId: "886679520@apl", upiMobile: "8866795230" };
   const [companyProfile, setCompanyProfile] = useState(() => {
     try { return { ...defaultCompany, ...JSON.parse(localStorage.getItem("akmal-company-profile") || "{}") }; } catch { return defaultCompany; }
   });
@@ -201,6 +201,37 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="companyPan">PAN (Optional)</Label>
                   <Input id="companyPan" value={companyProfile.pan} onChange={(e) => setCompanyProfile({ ...companyProfile, pan: e.target.value })} className="glass-sm" />
+                </div>
+                <div className="border-t border-slate-200 pt-4">
+                  <h4 className="font-medium text-slate-800 mb-3">Bank Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="bankName">Bank Name</Label>
+                      <Input id="bankName" value={companyProfile.bankName} onChange={(e) => setCompanyProfile({ ...companyProfile, bankName: e.target.value })} className="glass-sm" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bankIfsc">IFSC Code</Label>
+                      <Input id="bankIfsc" value={companyProfile.bankIfsc} onChange={(e) => setCompanyProfile({ ...companyProfile, bankIfsc: e.target.value })} className="glass-sm" />
+                    </div>
+                  </div>
+                  <div className="space-y-2 mt-3">
+                    <Label htmlFor="bankAccountName">Account Holder Name</Label>
+                    <Input id="bankAccountName" value={companyProfile.bankAccountName} onChange={(e) => setCompanyProfile({ ...companyProfile, bankAccountName: e.target.value })} className="glass-sm" />
+                  </div>
+                  <div className="space-y-2 mt-3">
+                    <Label htmlFor="bankAccountNo">Account Number</Label>
+                    <Input id="bankAccountNo" value={companyProfile.bankAccountNo} onChange={(e) => setCompanyProfile({ ...companyProfile, bankAccountNo: e.target.value })} className="glass-sm" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="upiId">UPI ID (for QR)</Label>
+                      <Input id="upiId" value={companyProfile.upiId} onChange={(e) => setCompanyProfile({ ...companyProfile, upiId: e.target.value })} className="glass-sm" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="upiMobile">UPI Mobile / GPay</Label>
+                      <Input id="upiMobile" value={companyProfile.upiMobile} onChange={(e) => setCompanyProfile({ ...companyProfile, upiMobile: e.target.value })} className="glass-sm" />
+                    </div>
+                  </div>
                 </div>
                 <Button onClick={handleSaveCompany} className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
                   <Save className="w-4 h-4 mr-2" /> Save Company Profile

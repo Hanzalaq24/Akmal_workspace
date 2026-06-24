@@ -300,6 +300,23 @@ const formatDateTime = (dateStr: string) => {
             <strong>Notes:</strong> ${invoice.notes}
           </div>
         ` : ''}
+        
+        <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between;">
+          <div style="width: 45%;">
+            <h4 style="font-size: 12px; font-weight: 700; color: #000; margin-bottom: 8px;">BANK DETAILS</h4>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">Bank: <strong>${company.bankName || 'SBI'}</strong></p>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">A/C Name: <strong>${company.bankAccountName || '-'}</strong></p>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">A/C No: <strong>${company.bankAccountNo || '-'}</strong></p>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">IFSC: <strong>${company.bankIfsc || '-'}</strong></p>
+          </div>
+          <div style="width: 45%; text-align: center;">
+            ${company.upiId ? `
+              <h4 style="font-size: 12px; font-weight: 700; color: #000; margin-bottom: 8px;">Scan to Pay</h4>
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`upi://pay?pa=${company.upiId}&pn=${encodeURIComponent(company.companyName || 'Akmal')}&cu=INR`)}" style="width: 100px; height: 100px;" alt="QR" />
+              <p style="font-size: 10px; color: #666; margin-top: 4px;">${company.upiId}</p>
+            ` : ''}
+          </div>
+        </div>
       </div>
     </body>
     </html>
@@ -1454,6 +1471,31 @@ export default function Services() {
                         </Button>
                       )}
                     </div>
+                    
+                    {/* UPI QR Code */}
+                    {(() => {
+                      try {
+                        const comp = JSON.parse(localStorage.getItem("akmal-company-profile") || "{}");
+                        if (comp.upiId) {
+                          const upiLink = `upi://pay?pa=${comp.upiId}&pn=${encodeURIComponent(comp.companyName || 'Akmal')}&am=${selectedInvoice ? getOutstandingAmount(selectedInvoice) : ''}&cu=INR`;
+                          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
+                          return (
+                            <div className="mt-4 p-4 bg-white/60 rounded-xl border border-green-200 text-center">
+                              <p className="text-sm font-medium text-slate-700 mb-2">Scan to Pay via UPI</p>
+                              <img src={qrUrl} alt="UPI QR" className="w-36 h-36 mx-auto mb-3 rounded-xl" />
+                              <p className="text-xs text-slate-500 mb-2">{comp.upiId}</p>
+                              <a href={upiLink} className="inline-block w-full">
+                                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white w-full">
+                                  💳 Pay Now via UPI
+                                </Button>
+                              </a>
+                              <p className="text-xs text-slate-400 mt-2">GPay / PhonePe / Paytm / BHIM</p>
+                            </div>
+                          );
+                        }
+                      } catch {}
+                      return null;
+                    })()}
                   </div>
                 </Card>
               </div>
