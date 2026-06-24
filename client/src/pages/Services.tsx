@@ -697,12 +697,53 @@ export default function Services() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Client Name
                   </label>
+                  <Select 
+                    value={newInvoiceData.clientName}
+                    onValueChange={(value) => {
+                      try {
+                        const savedClients = JSON.parse(localStorage.getItem("akmal-clients") || "[]");
+                        const client = savedClients.find((c: any) => c.name === value);
+                        if (client) {
+                          setNewInvoiceData({
+                            ...newInvoiceData,
+                            clientName: client.name,
+                            clientAddress: client.address || "",
+                            clientGstin: client.gstin || "",
+                            clientPhone: client.phone || "",
+                            placeOfSupply: client.placeOfSupply || "Gujarat",
+                          });
+                        } else {
+                          setNewInvoiceData({ ...newInvoiceData, clientName: value });
+                        }
+                      } catch {
+                        setNewInvoiceData({ ...newInvoiceData, clientName: value });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select saved client or type new" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(() => {
+                        try {
+                          const savedClients = JSON.parse(localStorage.getItem("akmal-clients") || "[]");
+                          if (savedClients.length === 0) return <SelectItem value="__none__" disabled>No saved clients</SelectItem>;
+                          return savedClients.map((c: any) => (
+                            <SelectItem key={c.id} value={c.name}>
+                              {c.name}
+                            </SelectItem>
+                          ));
+                        } catch { return <SelectItem value="__none__" disabled>No saved clients</SelectItem>; }
+                      })()}
+                    </SelectContent>
+                  </Select>
                   <Input
-                    placeholder="Enter client name"
+                    placeholder="Or type new client name"
                     value={newInvoiceData.clientName}
                     onChange={(e) =>
                       setNewInvoiceData({ ...newInvoiceData, clientName: e.target.value })
                     }
+                    className="mt-2"
                   />
                 </div>
                 <div>
