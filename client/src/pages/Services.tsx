@@ -407,6 +407,28 @@ export default function Services() {
 
     setInvoices([...invoices, invoice]);
     setSelectedInvoice(invoice);
+    
+    // Auto-save client to localStorage
+    if (newInvoiceData.clientName.trim()) {
+      try {
+        const savedClients = JSON.parse(localStorage.getItem("akmal-clients") || "[]");
+        const exists = savedClients.find((c: any) => c.name?.toLowerCase() === newInvoiceData.clientName.trim().toLowerCase());
+        if (!exists) {
+          savedClients.push({
+            id: String(Date.now()),
+            name: newInvoiceData.clientName.trim(),
+            email: "",
+            phone: newInvoiceData.clientPhone?.trim() || "",
+            address: newInvoiceData.clientAddress?.trim() || "",
+            gstin: newInvoiceData.clientGstin?.trim() || "",
+            placeOfSupply: newInvoiceData.placeOfSupply?.trim() || "Gujarat",
+            userId: "",
+          });
+          localStorage.setItem("akmal-clients", JSON.stringify(savedClients));
+        }
+      } catch {}
+    }
+    
     setNewInvoiceData({ title: "", projectName: "", clientName: "", clientAddress: "", clientGstin: "", clientPhone: "", placeOfSupply: "Gujarat", dueDate: "", additionalCharges: "", discount: "", roundOff: "" });
     setIsAddingInvoice(false);
     toast.success("Invoice created successfully");

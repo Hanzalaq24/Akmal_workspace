@@ -149,6 +149,18 @@ export default function Dashboard() {
     };
 
     setProjects([project, ...projects]);
+    
+    // Auto-save client
+    if (newProject.client.trim()) {
+      try {
+        const savedClients = JSON.parse(localStorage.getItem("akmal-clients") || "[]");
+        if (!savedClients.find((c: any) => c.name?.toLowerCase() === newProject.client.trim().toLowerCase())) {
+          savedClients.push({ id: String(Date.now()), name: newProject.client.trim(), email: "", phone: "", address: "" });
+          localStorage.setItem("akmal-clients", JSON.stringify(savedClients));
+        }
+      } catch {}
+    }
+    
     resetNewProjectForm();
     setShowNewProjectDialog(false);
     toast.success("Project created successfully!");
