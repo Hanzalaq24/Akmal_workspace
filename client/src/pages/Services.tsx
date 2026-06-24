@@ -81,7 +81,7 @@ const formatDateTime = (dateStr: string) => {
       return;
     }
     // Load company profile from Settings
-    let company = { name: "Akmal", address: "", mobile: "", gstin: "", email: "", pan: "" };
+    let company: any = { name: "Akmal", address: "", mobile: "", gstin: "", email: "", pan: "", bankName: "", bankAccountName: "", bankAccountNo: "", bankIfsc: "", upiId: "", upiMobile: "" };
     try {
       const saved = localStorage.getItem("akmal-company-profile");
       if (saved) company = JSON.parse(saved);
