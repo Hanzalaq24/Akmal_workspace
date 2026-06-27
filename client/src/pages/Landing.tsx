@@ -15,7 +15,6 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <AkmalLogo width={140} />
-            <h1 className="text-xl font-bold text-slate-900">Akmal Creative Hub</h1>
           </div>
           <div className="flex gap-3 items-center">
             {user ? (
@@ -172,7 +171,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t border-slate-200 mt-20 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-slate-600">
-          <p>&copy; 2026 Akmal Creative Hub. All rights reserved.</p>
+          <p>&copy; 2026 Akmal. All rights reserved.</p>
         </div>
       </footer>
     </div>

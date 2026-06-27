@@ -45,7 +45,7 @@ export default function Login() {
         <div className="text-center mb-8">
           <AkmalLogo width={160} />
           <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
-          <p className="text-sm text-slate-600 mt-1">Sign in to Akmal Creative Hub</p>
+          <p className="text-sm text-slate-600 mt-1">Sign in to your account</p>
         </div>
 
         <div className="space-y-4">

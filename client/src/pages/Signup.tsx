@@ -60,7 +60,7 @@ export default function Signup() {
         <div className="text-center mb-8">
           <AkmalLogo width={160} />
           <h1 className="text-2xl font-bold text-slate-900">Create Account</h1>
-          <p className="text-sm text-slate-600 mt-1">Join Akmal Creative Hub</p>
+          <p className="text-sm text-slate-600 mt-1">Create your account</p>
         </div>
 
         <div className="space-y-4">

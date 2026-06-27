@@ -263,7 +263,6 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <AkmalLogo className="shrink-0" width={130} />
-            <h1 className="text-2xl font-bold text-slate-900">Akmal Creative Hub</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
             <span className="text-sm text-slate-600 hidden md:inline shrink-0">{user?.name}</span>
