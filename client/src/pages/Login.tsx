@@ -33,7 +33,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/20 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/20 to-white flex flex-col items-center justify-center p-4 gap-6">
+      <AkmalLogo width={180} />
       <Card className="glass rounded-3xl p-8 w-full max-w-md shadow-xl">
         <button
           onClick={() => setLocation("/")}
@@ -43,7 +44,6 @@ export default function Login() {
         </button>
 
         <div className="text-center mb-8">
-          <AkmalLogo width={160} />
           <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
           <p className="text-sm text-slate-600 mt-1">Sign in to your account</p>
         </div>
