@@ -17,6 +17,7 @@ import SettingsPage from "./pages/Settings";
 import ItemsPage from "./pages/Items";
 import ClientsPage from "./pages/Clients";
 import PurchaseOrdersPage from "./pages/PurchaseOrders";
+import NotesPage from "./pages/Notes";
 
 function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>; path?: string }) {
   const { user } = useAuth();
@@ -58,6 +59,9 @@ function Router() {
       </Route>
       <Route path={"/purchase-orders"}>
         <ProtectedRoute component={PurchaseOrdersPage} />
+      </Route>
+      <Route path={"/notes"}>
+        <ProtectedRoute component={NotesPage} />
       </Route>
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

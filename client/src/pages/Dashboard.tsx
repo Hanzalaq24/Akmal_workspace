@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Plus, Search, Bell, Settings, LogOut, Kanban, LayoutGrid, Activity, TrendingUp, Users, AlertCircle, CheckCircle2, Trash2, Eye, MessageSquare, Paperclip, Zap, DollarSign, Package, UserRound, Receipt } from "lucide-react";
+import { Plus, Search, Bell, Settings, LogOut, Kanban, LayoutGrid, Activity, TrendingUp, Users, AlertCircle, CheckCircle2, Trash2, Eye, MessageSquare, Paperclip, Zap, DollarSign, Package, UserRound, Receipt, StickyNote } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { AkmalLogo } from "@/components/AkmalLogo";
@@ -270,7 +270,7 @@ export default function Dashboard() {
               variant="ghost" 
               size="sm"
               onClick={() => setLocation("/items")}
-              className="text-slate-600 hover:text-indigo-600 shrink-0"
+              className="text-slate-600 hover:text-indigo-600 shrink-0 hidden md:inline-flex"
             >
               📦 <span className="hidden sm:inline">Items</span>
             </Button>
@@ -750,50 +750,28 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* AI Assistant Panel */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <button 
-          onClick={() => setShowAIAssistant(!showAIAssistant)}
-          className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all hover:scale-110"
-        >
-          <Zap className="w-6 h-6" />
-        </button>
-        {showAIAssistant && (
-          <div className="absolute bottom-20 right-0 w-80 glass rounded-2xl p-6 shadow-2xl">
-            <h3 className="font-semibold text-slate-900 mb-3">AI Assistant</h3>
-            <p className="text-sm text-slate-600 mb-4">
-              Your projects are on track! 65% of tasks completed across all active projects. Next deadline: Rifaah Perfumes Website on July 15th.
-            </p>
-            <div className="space-y-2">
-              <Button size="sm" className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
-                <Zap className="w-3 h-3 mr-2" /> Generate Task Breakdown
-              </Button>
-              <Button size="sm" variant="outline" className="w-full">
-                View Recommendations
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/30 md:hidden">
         <div className="flex items-center justify-around py-2 px-1">
+          <button onClick={() => setLocation("/")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+            <span className="text-[10px] font-medium">Home</span>
+          </button>
+          <button onClick={() => setLocation("/notes")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
+            <StickyNote className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Notes</span>
+          </button>
           <button onClick={() => setShowNewProjectDialog(true)} className="flex flex-col items-center gap-0.5 text-indigo-600 p-2 rounded-lg active:bg-indigo-50">
             <Plus className="w-5 h-5" />
             <span className="text-[10px] font-medium">New</span>
           </button>
-          <button onClick={() => setLocation("/items")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
-            <Package className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Items</span>
-          </button>
-          <button onClick={() => setLocation("/clients")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
-            <UserRound className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Clients</span>
-          </button>
           <button onClick={() => setLocation("/services")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
             <Receipt className="w-5 h-5" />
             <span className="text-[10px] font-medium">Billing</span>
+          </button>
+          <button onClick={() => setLocation("/settings")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
+            <Settings className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Settings</span>
           </button>
         </div>
       </nav>

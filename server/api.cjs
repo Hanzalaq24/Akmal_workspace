@@ -503,5 +503,56 @@ app.delete("/api/items/:id", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── NOTES ──────────────────────────────────────────────────
+app.get("/api/notes", async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    let result;
+    if (userId) {
+      result = await pool.query("SELECT * FROM notes WHERE user_id=$1 ORDER BY updated_at DESC", [userId]);
+    } else {
+      result = await pool.query("SELECT * FROM notes ORDER BY updated_at DESC");
+    }
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/notes/:id", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM notes WHERE id=$1", [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: "Note not found" });
+    res.json(result.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/notes", async (req, res) => {
+  try {
+    const { title, content, user_id } = req.body;
+    const result = await pool.query(
+      "INSERT INTO notes (title, content, user_id) VALUES ($1,$2,$3) RETURNING *",
+      [title, content || "", user_id || null]
+    );
+    res.json({ success: true, note: result.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/notes/:id", async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    await pool.query(
+      "UPDATE notes SET title=$1, content=$2, updated_at=NOW() WHERE id=$3",
+      [title, content, req.params.id]
+    );
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/notes/:id", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM notes WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 const PORT = process.env.API_PORT || 3001;
 app.listen(PORT, () => console.log(`API running on port \${PORT}`));
