@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, Edit2, Download, Eye, DollarSign, Package, FileText, Save, Share2, Printer, CreditCard, TrendingUp, Users, LayoutGrid, Receipt, UserRound } from "lucide-react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 interface ServiceItem {
   id: string;
@@ -334,6 +335,7 @@ const formatDateTime = (dateStr: string) => {
 };
 
 export default function Services() {
+  const [, setLocation] = useLocation();
   const [invoices, setInvoices] = useState<Invoice[]>(() => {
     try {
       const saved = localStorage.getItem("akmal-invoices");
