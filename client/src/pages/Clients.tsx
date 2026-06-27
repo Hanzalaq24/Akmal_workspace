@@ -52,6 +52,27 @@ export default function Clients() {
     localStorage.setItem("akmal-clients", JSON.stringify(clients));
   }, [clients]);
 
+  // Sync with PostgreSQL API
+  useEffect(() => {
+    const syncWithDB = async () => {
+      try {
+        const apiClients = await (await fetch(`/api/clients${user?.id ? `?user_id=${user.id}` : ''}`)).json();
+        if (Array.isArray(apiClients) && apiClients.length > 0) {
+          const localClients = JSON.parse(localStorage.getItem("akmal-clients") || "[]");
+          let changed = false;
+          apiClients.forEach((ac: any) => {
+            if (!localClients.find((lc: any) => lc.name?.toLowerCase() === ac.name?.toLowerCase())) {
+              localClients.push({ id: String(ac.id), name: ac.name, email: ac.email || "", phone: ac.phone || "", address: ac.address || "", gstin: ac.gstin || "", pan: ac.pan || "", placeOfSupply: ac.place_of_supply || "Gujarat", userId: user?.id || "" });
+              changed = true;
+            }
+          });
+          if (changed) { localStorage.setItem("akmal-clients", JSON.stringify(localClients)); setClients(localClients); }
+        }
+      } catch {}
+    };
+    syncWithDB();
+  }, [user?.id]);
+
   // Auto-add clients from project creation
   useEffect(() => {
     try {
@@ -176,6 +197,14 @@ export default function Clients() {
       );
       setClients(updated);
       toast.success("Client updated");
+      // Sync to API
+      try { 
+        fetch(`/api/clients/${editingClient.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address: form.address.trim(), gstin: form.gstin.trim(), pan: form.pan.trim(), place_of_supply: form.placeOfSupply.trim() || "Gujarat" }),
+        });
+      } catch {}
     } else {
       const exists = clients.some(
         (c) => c.name.toLowerCase() === form.name.trim().toLowerCase()
@@ -197,6 +226,14 @@ export default function Clients() {
       };
       setClients([...clients, newClient]);
       toast.success("Client added");
+      // Sync to API
+      try {
+        fetch("/api/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), address: form.address.trim(), gstin: form.gstin.trim(), pan: form.pan.trim(), place_of_supply: form.placeOfSupply.trim() || "Gujarat", user_id: user?.id }),
+        });
+      } catch {}
     }
     resetForm();
     setShowDialog(false);
@@ -205,6 +242,8 @@ export default function Clients() {
   const handleDelete = (id: string) => {
     setClients(clients.filter((c) => c.id !== id));
     toast.success("Client removed");
+    // Sync to API
+    try { fetch(`/api/clients/${id}`, { method: "DELETE" }); } catch {}
   };
 
   return (

@@ -459,5 +459,49 @@ app.get("/api/dashboard-stats", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── ITEMS ──────────────────────────────────────────────────
+app.get("/api/items", async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    let result;
+    if (userId) {
+      result = await pool.query("SELECT * FROM items ORDER BY id DESC");
+    } else {
+      result = await pool.query("SELECT * FROM items ORDER BY id DESC");
+    }
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/items", async (req, res) => {
+  try {
+    const { name, item_type, unit, sales_price, purchase_price, gst, hsn_or_sac, discount, opening_stock, item_code, barcode, category, description, show_in_store, image, custom_fields, user_id } = req.body;
+    const result = await pool.query(
+      `INSERT INTO items (name, item_type, unit, sales_price, purchase_price, gst, hsn_or_sac, discount, opening_stock, item_code, barcode, category, description, show_in_store, image, custom_fields, user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+      [name, item_type || "Product", unit || "PCS", sales_price || 0, purchase_price || 0, gst || 0, hsn_or_sac || "", discount || 0, opening_stock || 0, item_code || "", barcode || "", category || "No Category", description || "", show_in_store !== false, image || "", JSON.stringify(custom_fields || []), user_id || null]
+    );
+    res.json({ success: true, item: result.rows[0] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/items/:id", async (req, res) => {
+  try {
+    const { name, item_type, unit, sales_price, purchase_price, gst, hsn_or_sac, discount, opening_stock, item_code, barcode, category, description, show_in_store, image, custom_fields } = req.body;
+    await pool.query(
+      `UPDATE items SET name=$1, item_type=$2, unit=$3, sales_price=$4, purchase_price=$5, gst=$6, hsn_or_sac=$7, discount=$8, opening_stock=$9, item_code=$10, barcode=$11, category=$12, description=$13, show_in_store=$14, image=$15, custom_fields=$16 WHERE id=$17`,
+      [name, item_type, unit, sales_price, purchase_price, gst, hsn_or_sac, discount, opening_stock, item_code, barcode, category, description, show_in_store, image, JSON.stringify(custom_fields || []), req.params.id]
+    );
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/api/items/:id", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM items WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 const PORT = process.env.API_PORT || 3001;
 app.listen(PORT, () => console.log(`API running on port \${PORT}`));

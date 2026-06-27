@@ -446,6 +446,16 @@ export default function Services() {
       } catch {}
     }
     
+    // Sync invoice to API
+    try {
+      const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+      fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoice_no: invoice.id, project_name: invoice.projectName, client_name: invoice.clientName, date: invoice.date, due_date: invoice.dueDate, items: invoice.items, subtotal: invoice.subtotal, gst_percentage: invoice.gstPercentage, gst_amount: invoice.gstAmount, total: invoice.total, status: invoice.status, notes: invoice.notes || "", user_id: cu?.id || null }),
+      });
+    } catch {}
+    
     setNewInvoiceData({ title: "", projectName: "", clientName: "", clientAddress: "", clientGstin: "", clientPhone: "", placeOfSupply: "Gujarat", dueDate: "", additionalCharges: "", discount: "", roundOff: "" });
     setIsAddingInvoice(false);
     toast.success("Invoice created successfully");

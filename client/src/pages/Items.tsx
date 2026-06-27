@@ -195,6 +195,15 @@ export default function ItemsPage() {
       };
       setItems([newItem, ...items]);
       toast.success("Item saved");
+      // Sync to API
+      try {
+        const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+        fetch("/api/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: newItem.name, item_type: newItem.itemType, unit: newItem.unit, sales_price: newItem.salesPrice, purchase_price: newItem.purchasePrice, gst: newItem.gst, hsn_or_sac: newItem.hsnOrSac, discount: newItem.discount, opening_stock: newItem.openingStock, item_code: newItem.itemCode, barcode: newItem.barcode, category: newItem.category, description: newItem.description, show_in_store: newItem.showInStore, image: newItem.image, custom_fields: newItem.customFields, user_id: cu?.id || null }),
+        });
+      } catch {}
     }
 
     if (saveAndNew) {
@@ -208,6 +217,7 @@ export default function ItemsPage() {
   const handleDelete = (id: string) => {
     setItems(items.filter(item => item.id !== id));
     toast.success("Item deleted");
+    try { fetch(`/api/items/${id}`, { method: "DELETE" }); } catch {}
   };
 
   const formatPrice = (n: number) => n ? `₹${n.toLocaleString('en-IN')}` : "-";

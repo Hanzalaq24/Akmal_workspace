@@ -161,6 +161,16 @@ export default function Dashboard() {
       } catch {}
     }
     
+    // Sync project to API
+    try {
+      const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+      fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: project.name, client: project.client, types: project.types, description: project.description, status: project.status, deadline: project.deadline, budget: project.budget, spent: project.spent, team: project.team, user_id: cu?.id || null }),
+      });
+    } catch {}
+    
     resetNewProjectForm();
     setShowNewProjectDialog(false);
     toast.success("Project created successfully!");
