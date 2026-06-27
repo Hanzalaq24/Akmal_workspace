@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { AkmalLogo } from "@/components/AkmalLogo";
 import { ArrowRight, BarChart3, Kanban, Users, Zap, FileText, Bell, LogIn } from "lucide-react";
 
 export default function Landing() {
@@ -13,9 +14,7 @@ export default function Landing() {
       <nav className="sticky top-0 z-50 glass border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">AH</span>
-            </div>
+            <AkmalLogo width={140} />
             <h1 className="text-xl font-bold text-slate-900">Akmal Creative Hub</h1>
           </div>
           <div className="flex gap-3 items-center">

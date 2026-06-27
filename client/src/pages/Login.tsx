@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Lock, LogIn, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { AkmalLogo } from "@/components/AkmalLogo";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -42,9 +43,7 @@ export default function Login() {
         </button>
 
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <LogIn className="w-8 h-8 text-white" />
-          </div>
+          <AkmalLogo width={160} />
           <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
           <p className="text-sm text-slate-600 mt-1">Sign in to Akmal Creative Hub</p>
         </div>

@@ -11,6 +11,7 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { Plus, Search, Bell, Settings, LogOut, Kanban, LayoutGrid, Activity, TrendingUp, Users, AlertCircle, CheckCircle2, Trash2, Eye, MessageSquare, Paperclip, Zap, DollarSign } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { AkmalLogo } from "@/components/AkmalLogo";
 import { toast } from "sonner";
 
 interface Task {
@@ -236,9 +237,7 @@ export default function Dashboard() {
       <header className="sticky top-0 z-40 glass border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-teal-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">AH</span>
-            </div>
+            <AkmalLogo className="shrink-0" width={130} />
             <h1 className="text-2xl font-bold text-slate-900">Akmal Creative Hub</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
