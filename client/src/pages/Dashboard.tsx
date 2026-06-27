@@ -77,6 +77,31 @@ export default function Dashboard() {
   useEffect(() => {
     localStorage.setItem("akmal-projects", JSON.stringify(projects));
   }, [projects]);
+
+  // One-time sync existing projects to API
+  useEffect(() => {
+    const sync = async () => {
+      const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+      if (!cu?.id) return;
+      try {
+        const apiProjects = await (await fetch(`/api/projects?user_id=${cu.id}`)).json();
+        const localProjects = JSON.parse(localStorage.getItem("akmal-projects") || "[]");
+        for (const p of localProjects) {
+          try {
+            const exists = Array.isArray(apiProjects) && apiProjects.find((ap: any) => ap.name?.toLowerCase() === p.name?.toLowerCase());
+            if (!exists) {
+              fetch("/api/projects", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: p.name, client: p.client, types: p.types, description: p.description, status: p.status, deadline: p.deadline, budget: p.budget, spent: p.spent, team: p.team, user_id: cu.id }),
+              });
+            }
+          } catch {}
+        }
+      } catch {}
+    };
+    sync();
+  }, []);
   const [view, setView] = useState<"grid" | "kanban">("grid");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [searchTerm, setSearchTerm] = useState("");

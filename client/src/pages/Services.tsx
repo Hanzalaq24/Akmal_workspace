@@ -353,6 +353,27 @@ export default function Services() {
     localStorage.setItem("akmal-invoices", JSON.stringify(invoices));
   }, [invoices]);
 
+  // One-time sync existing invoices to API
+  useEffect(() => {
+    const sync = async () => {
+      const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+      if (!cu?.id) return;
+      try {
+        const localInvoices = JSON.parse(localStorage.getItem("akmal-invoices") || "[]");
+        for (const inv of localInvoices) {
+          try {
+            await fetch("/api/invoices", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ invoice_no: inv.id, project_name: inv.projectName || "", client_name: inv.clientName || "", date: inv.date, due_date: inv.dueDate, items: inv.items || [], subtotal: inv.subtotal || 0, gst_percentage: inv.gstPercentage || 18, gst_amount: inv.gstAmount || 0, total: inv.total || 0, status: inv.status || "draft", notes: inv.notes || "", user_id: cu.id }),
+            });
+          } catch {}
+        }
+      } catch {}
+    };
+    sync();
+  }, []);
+
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isAddingInvoice, setIsAddingInvoice] = useState(false);
   const [isEditingItems, setIsEditingItems] = useState(false);

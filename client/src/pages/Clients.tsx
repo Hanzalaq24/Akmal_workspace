@@ -68,9 +68,23 @@ export default function Clients() {
           });
           if (changed) { localStorage.setItem("akmal-clients", JSON.stringify(localClients)); setClients(localClients); }
         }
+        // Push all local clients to API
+        const allLocal = JSON.parse(localStorage.getItem("akmal-clients") || "[]");
+        for (const c of allLocal) {
+          try {
+            const check = await (await fetch(`/api/clients?user_id=${user?.id || ''}`)).json();
+            if (Array.isArray(check) && !check.find((ac: any) => ac.name?.toLowerCase() === c.name?.toLowerCase())) {
+              await fetch("/api/clients", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: c.name, email: c.email || "", phone: c.phone || "", address: c.address || "", gstin: c.gstin || "", pan: c.pan || "", place_of_supply: c.placeOfSupply || "Gujarat", user_id: user?.id }),
+              });
+            }
+          } catch {}
+        }
       } catch {}
     };
-    syncWithDB();
+    if (user?.id) syncWithDB();
   }, [user?.id]);
 
   // Auto-add clients from project creation

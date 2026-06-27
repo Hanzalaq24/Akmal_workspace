@@ -98,6 +98,31 @@ export default function ItemsPage() {
     localStorage.setItem("akmal-item-categories", JSON.stringify(categories));
   }, [categories]);
 
+  // One-time sync localStorage items to API
+  useEffect(() => {
+    const sync = async () => {
+      const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+      if (!cu?.id) return;
+      try {
+        const apiItems = await (await fetch(`/api/items?user_id=${cu.id}`)).json();
+        const localItems = JSON.parse(localStorage.getItem("akmal-items") || "[]");
+        for (const item of localItems) {
+          try {
+            const exists = Array.isArray(apiItems) && apiItems.find((ai: any) => ai.name?.toLowerCase() === item.name?.toLowerCase());
+            if (!exists) {
+              await fetch("/api/items", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: item.name, item_type: item.itemType, unit: item.unit, sales_price: item.salesPrice, purchase_price: item.purchasePrice || 0, gst: item.gst || 0, hsn_or_sac: item.hsnOrSac || "", discount: item.discount || 0, opening_stock: item.openingStock || 0, item_code: item.itemCode || "", barcode: item.barcode || "", category: item.category || "No Category", description: item.description || "", show_in_store: item.showInStore !== false, image: item.image || "", custom_fields: item.customFields || [], user_id: cu.id }),
+              });
+            }
+          } catch {}
+        }
+      } catch {}
+    };
+    sync();
+  }, []);
+
   useEffect(() => {
     if (showAddDialog) {
       try {
