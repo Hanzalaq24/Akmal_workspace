@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Edit2, Download, Eye, DollarSign, Package, FileText, Save, Share2, Printer, CreditCard, TrendingUp, Users } from "lucide-react";
+import { Plus, Trash2, Edit2, Download, Eye, DollarSign, Package, FileText, Save, Share2, Printer, CreditCard, TrendingUp, Users, LayoutGrid, Receipt, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 interface ServiceItem {
@@ -1579,6 +1579,29 @@ export default function Services() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/30 md:hidden">
+        <div className="flex items-center justify-around py-2 px-1">
+          <button onClick={() => setLocation("/dashboard")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
+            <LayoutGrid className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Projects</span>
+          </button>
+          <button onClick={() => setLocation("/items")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
+            <Package className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Items</span>
+          </button>
+          <button onClick={() => setLocation("/clients")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
+            <UserRound className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Clients</span>
+          </button>
+          <button onClick={() => setLocation("/services")} className="flex flex-col items-center gap-0.5 text-indigo-600 p-2 rounded-lg active:bg-indigo-50">
+            <Receipt className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Billing</span>
+          </button>
+        </div>
+      </nav>
+      <div className="h-14 md:hidden" />
     </div>
   );
 }

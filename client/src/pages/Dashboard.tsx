@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Plus, Search, Bell, Settings, LogOut, Kanban, LayoutGrid, Activity, TrendingUp, Users, AlertCircle, CheckCircle2, Trash2, Eye, MessageSquare, Paperclip, Zap, DollarSign } from "lucide-react";
+import { Plus, Search, Bell, Settings, LogOut, Kanban, LayoutGrid, Activity, TrendingUp, Users, AlertCircle, CheckCircle2, Trash2, Eye, MessageSquare, Paperclip, Zap, DollarSign, Package, UserRound, Receipt } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { AkmalLogo } from "@/components/AkmalLogo";
@@ -775,6 +775,30 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-white/30 md:hidden">
+        <div className="flex items-center justify-around py-2 px-1">
+          <button onClick={() => setShowNewProjectDialog(true)} className="flex flex-col items-center gap-0.5 text-indigo-600 p-2 rounded-lg active:bg-indigo-50">
+            <Plus className="w-5 h-5" />
+            <span className="text-[10px] font-medium">New</span>
+          </button>
+          <button onClick={() => setLocation("/items")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
+            <Package className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Items</span>
+          </button>
+          <button onClick={() => setLocation("/clients")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
+            <UserRound className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Clients</span>
+          </button>
+          <button onClick={() => setLocation("/services")} className="flex flex-col items-center gap-0.5 text-slate-600 p-2 rounded-lg active:bg-slate-50">
+            <Receipt className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Billing</span>
+          </button>
+        </div>
+      </nav>
+      {/* Spacer for mobile nav */}
+      <div className="h-14 md:hidden" />
     </div>
   );
 }
