@@ -309,8 +309,9 @@ const formatDateTime = (dateStr: string) => {
           </div>
           <div style="width: 35%; text-align: center;">
             <h4 style="font-size: 12px; font-weight: 700; color: #000; margin-bottom: 8px;">Scan to Pay</h4>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`upi://pay?pa=886679520@apl&pn=Akmal&cu=INR`)}" style="width: 100px; height: 100px;" alt="QR" />
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`upi://pay?pa=886679520@apl&pn=Akmal&am=${Math.max(0, invoice.total - (invoice.receivedAmount || 0))}&cu=INR`)}" style="width: 110px; height: 110px;" alt="QR" />
             <p style="font-size: 10px; color: #666; margin-top: 4px;">886679520@apl</p>
+            <p style="font-size: 10px; color: #444; margin-top: 2px;">Amount: <strong>₹${(invoice.total - (invoice.receivedAmount || 0)).toLocaleString('en-IN')}</strong></p>
           </div>
         </div>
       </div>
@@ -1504,27 +1505,25 @@ export default function Services() {
                     
                     {/* UPI QR Code */}
                     {(() => {
-                      try {
-                        const comp = JSON.parse(localStorage.getItem("akmal-company-profile") || "{}");
-                        if (comp.upiId) {
-                          const upiLink = `upi://pay?pa=${comp.upiId}&pn=${encodeURIComponent(comp.companyName || 'Akmal')}&am=${selectedInvoice ? getOutstandingAmount(selectedInvoice) : ''}&cu=INR`;
-                          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
-                          return (
-                            <div className="mt-4 p-4 bg-white/60 rounded-xl border border-green-200 text-center">
-                              <p className="text-sm font-medium text-slate-700 mb-2">Scan to Pay via UPI</p>
-                              <img src={qrUrl} alt="UPI QR" className="w-36 h-36 mx-auto mb-3 rounded-xl" />
-                              <p className="text-xs text-slate-500 mb-2">{comp.upiId}</p>
-                              <a href={upiLink} className="inline-block w-full">
-                                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white w-full">
-                                  💳 Pay Now via UPI
-                                </Button>
-                              </a>
-                              <p className="text-xs text-slate-400 mt-2">GPay / PhonePe / Paytm / BHIM</p>
-                            </div>
-                          );
-                        }
-                      } catch {}
-                      return null;
+                      const upiId = "886679520@apl";
+                      const upiLink = `upi://pay?pa=${upiId}&pn=Akmal&am=${selectedInvoice ? getOutstandingAmount(selectedInvoice) : ''}&cu=INR`;
+                      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`;
+                      return (
+                        <div className="mt-4 p-4 bg-white/60 rounded-xl border border-green-200 text-center">
+                          <p className="text-sm font-medium text-slate-700 mb-2">Scan to Pay via UPI</p>
+                          <img src={qrUrl} alt="UPI QR" className="w-40 h-40 mx-auto mb-3 rounded-xl" />
+                          <p className="text-xs text-slate-500 mb-1">{upiId}</p>
+                          {selectedInvoice && (
+                            <p className="text-sm font-semibold text-slate-700 mb-2">Amount: ₹{getOutstandingAmount(selectedInvoice).toLocaleString('en-IN')}</p>
+                          )}
+                          <a href={upiLink} className="inline-block w-full">
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white w-full">
+                              💳 Pay Now via UPI
+                            </Button>
+                          </a>
+                          <p className="text-xs text-slate-400 mt-2">GPay / PhonePe / Paytm / BHIM</p>
+                        </div>
+                      );
                     })()}
                   </div>
                 </Card>
