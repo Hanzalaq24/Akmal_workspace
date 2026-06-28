@@ -77,42 +77,42 @@ const formatDateTime = (dateStr: string) => {
   return `${d.toLocaleDateString("en-IN")} ${d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`;
 };
 
-  const generatePDF = (invoice: Invoice) => {
-    if (!invoice) {
-      toast.error("Please select an invoice first");
-      return;
-    }
-    // Load company profile from Settings
-    let company: any = { companyName: "Akmal", address: "", mobile: "", gstin: "", email: "", pan: "", bankName: "", bankAccountName: "", bankAccountNo: "", bankIfsc: "", upiId: "", upiMobile: "" };
-    try {
-      const saved = localStorage.getItem("akmal-company-profile");
-      if (saved) company = JSON.parse(saved);
-    } catch {}
+const generatePDF = (invoice: Invoice) => {
+  if (!invoice) {
+    toast.error("Please select an invoice first");
+    return;
+  }
+  // Load company profile from Settings
+  let company: any = { companyName: "Akmal", address: "", mobile: "", gstin: "", email: "", pan: "", bankName: "", bankAccountName: "", bankAccountNo: "", bankIfsc: "", upiId: "", upiMobile: "" };
+  try {
+    const saved = localStorage.getItem("akmal-company-profile");
+    if (saved) company = JSON.parse(saved);
+  } catch { }
 
-    const dueDays = invoice.dueDate ? Math.max(0, Math.ceil((new Date(invoice.dueDate).getTime() - Date.now()) / (1000*60*60*24))) : 0;
-    const halfGst = Math.round(invoice.gstAmount / 2);
-    const halfGstPercent = invoice.gstPercentage / 2;
-    const taxable = invoice.subtotal;
+  const dueDays = invoice.dueDate ? Math.max(0, Math.ceil((new Date(invoice.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
+  const halfGst = Math.round(invoice.gstAmount / 2);
+  const halfGstPercent = invoice.gstPercentage / 2;
+  const taxable = invoice.subtotal;
 
-    const numberToWords = (n: number): string => {
-      if (n === 0) return "Zero";
-      const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
-      const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
-      const conv = (num: number): string => {
-        if (num < 20) return ones[num];
-        if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? " " + ones[num % 10] : "");
-        if (num < 1000) return ones[Math.floor(num / 100)] + " Hundred" + (num % 100 ? " and " + conv(num % 100) : "");
-        if (num < 100000) return conv(Math.floor(num / 1000)) + " Thousand" + (num % 1000 ? " " + conv(num % 1000) : "");
-        if (num < 10000000) return conv(Math.floor(num / 100000)) + " Lakh" + (num % 100000 ? " " + conv(num % 100000) : "");
-        return conv(Math.floor(num / 10000000)) + " Crore" + (num % 10000000 ? " " + conv(num % 10000000) : "");
-      };
-      const rupees = Math.floor(n);
-      const paise = Math.round((n - rupees) * 100);
-      let result = conv(rupees) + " Rupees";
-      if (paise > 0) result += " and " + conv(paise) + " Paise";
-      result += " Only";
-      return result;
+  const numberToWords = (n: number): string => {
+    if (n === 0) return "Zero";
+    const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+    const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    const conv = (num: number): string => {
+      if (num < 20) return ones[num];
+      if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? " " + ones[num % 10] : "");
+      if (num < 1000) return ones[Math.floor(num / 100)] + " Hundred" + (num % 100 ? " and " + conv(num % 100) : "");
+      if (num < 100000) return conv(Math.floor(num / 1000)) + " Thousand" + (num % 1000 ? " " + conv(num % 1000) : "");
+      if (num < 10000000) return conv(Math.floor(num / 100000)) + " Lakh" + (num % 100000 ? " " + conv(num % 100000) : "");
+      return conv(Math.floor(num / 10000000)) + " Crore" + (num % 10000000 ? " " + conv(num % 10000000) : "");
     };
+    const rupees = Math.floor(n);
+    const paise = Math.round((n - rupees) * 100);
+    let result = conv(rupees) + " Rupees";
+    if (paise > 0) result += " and " + conv(paise) + " Paise";
+    result += " Only";
+    return result;
+  };
 
   const html = `
     <!DOCTYPE html>
@@ -234,10 +234,10 @@ const formatDateTime = (dateStr: string) => {
           </thead>
           <tbody>
             ${invoice.items.map(item => {
-              const taxAmt = Math.round((item.total - (item.discount || 0)) * (item.gstPercentage !== undefined ? item.gstPercentage : 18) / 100);
-              const itemGstPct = item.gstPercentage !== undefined ? item.gstPercentage : 18;
-              const amtAfterDisc = item.total - (item.discount || 0);
-              return `
+    const taxAmt = Math.round((item.total - (item.discount || 0)) * (item.gstPercentage !== undefined ? item.gstPercentage : 18) / 100);
+    const itemGstPct = item.gstPercentage !== undefined ? item.gstPercentage : 18;
+    const amtAfterDisc = item.total - (item.discount || 0);
+    return `
               <tr>
                 <td class="item-name">
                   ${item.name}
@@ -251,7 +251,7 @@ const formatDateTime = (dateStr: string) => {
                 ${invoice.gstAmount > 0 ? `<td class="tax">₹${taxAmt.toLocaleString('en-IN')}<br>(${itemGstPct}%)</td>` : ''}
                 <td class="text-right" style="font-weight:600;">₹${amtAfterDisc.toLocaleString('en-IN')}</td>
               </tr>`;
-            }).join('')}
+  }).join('')}
           </tbody>
         </table>
 
@@ -353,13 +353,13 @@ export default function Services() {
       const saved = localStorage.getItem("akmal-invoices");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === 2 && parsed.every((inv: any) => ["INV-001","INV-002"].includes(inv.id))) {
+        if (Array.isArray(parsed) && parsed.length === 2 && parsed.every((inv: any) => ["INV-001", "INV-002"].includes(inv.id))) {
           localStorage.removeItem("akmal-invoices");
           return [];
         }
         return parsed;
       }
-    } catch {}
+    } catch { }
     return [];
   });
 
@@ -429,7 +429,7 @@ export default function Services() {
           setInvoices(merged);
           localStorage.setItem("akmal-invoices", JSON.stringify(merged));
         }
-      } catch {}
+      } catch { }
     };
     loadFromApi();
   }, []);
@@ -448,9 +448,9 @@ export default function Services() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ invoice_no: inv.id, project_name: inv.projectName || "", client_name: inv.clientName || "", date: inv.date, due_date: inv.dueDate, items: inv.items || [], subtotal: inv.subtotal || 0, gst_percentage: inv.gstPercentage || 18, gst_amount: inv.gstAmount || 0, total: inv.total || 0, status: inv.status || "draft", notes: inv.notes || "", user_id: cu.id, work_done_detail: inv.workDoneDetail || "", client_address: inv.clientAddress || "" }),
             });
-          } catch {}
+          } catch { }
         }
-      } catch {}
+      } catch { }
     };
     sync();
   }, []);
@@ -559,9 +559,9 @@ export default function Services() {
           });
           localStorage.setItem("akmal-clients", JSON.stringify(savedClients));
         }
-      } catch {}
+      } catch { }
     }
-    
+
     // Sync invoice to API
     try {
       const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
@@ -570,8 +570,8 @@ export default function Services() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ invoice_no: invoice.id, project_name: invoice.projectName, client_name: invoice.clientName, date: invoice.date, due_date: invoice.dueDate, items: invoice.items, subtotal: invoice.subtotal, gst_percentage: invoice.gstPercentage, gst_amount: invoice.gstAmount, total: invoice.total, status: invoice.status, notes: invoice.notes || "", user_id: cu?.id || null }),
       });
-    } catch {}
-    
+    } catch { }
+
     setNewInvoiceData({ clientName: "" });
     setIsAddingInvoice(false);
     toast.success("Invoice created successfully");
@@ -609,7 +609,7 @@ export default function Services() {
         savedItems.push(newItem);
         localStorage.setItem("akmal-items", JSON.stringify(savedItems));
       }
-    } catch {}
+    } catch { }
     setNewInvoiceItem({ name: "" });
   };
 
@@ -618,10 +618,10 @@ export default function Services() {
       toast.error("Please fill in all item details");
       return;
     }
-    
+
     const qty = typeof newItem.quantity === 'string' ? parseInt(newItem.quantity) : newItem.quantity;
     const price = typeof newItem.unitPrice === 'string' ? parseFloat(newItem.unitPrice) : newItem.unitPrice;
-    
+
     if (qty <= 0 || price <= 0) {
       toast.error("Quantity and price must be greater than 0");
       return;
@@ -688,7 +688,7 @@ export default function Services() {
               gst: itemToSave.gst,
               user_id: cu.id
             })
-          }).catch(() => {});
+          }).catch(() => { });
         }
       }
     } catch (e) {
@@ -744,17 +744,17 @@ export default function Services() {
     const updatedItems = invoice.items.map((item) =>
       item.id === itemId
         ? {
-            ...item,
-            quantity,
-            unitPrice,
-            total: quantity * unitPrice,
-            billingType: billingType !== undefined ? billingType : item.billingType,
-            description: description !== undefined ? description : item.description,
-            hsn: hsn !== undefined ? hsn : item.hsn,
-            discount: discount !== undefined ? discount : item.discount,
-            gstPercentage: gstPercentage !== undefined ? gstPercentage : item.gstPercentage,
-            name: name !== undefined ? name : item.name,
-          }
+          ...item,
+          quantity,
+          unitPrice,
+          total: quantity * unitPrice,
+          billingType: billingType !== undefined ? billingType : item.billingType,
+          description: description !== undefined ? description : item.description,
+          hsn: hsn !== undefined ? hsn : item.hsn,
+          discount: discount !== undefined ? discount : item.discount,
+          gstPercentage: gstPercentage !== undefined ? gstPercentage : item.gstPercentage,
+          name: name !== undefined ? name : item.name,
+        }
         : item
     );
 
@@ -780,7 +780,7 @@ export default function Services() {
   const handleCreateDirectInvoice = async () => {
     const nextInvNum = invoices.length + trashedInvoices.length + 1;
     const invId = `INV-${String(nextInvNum).padStart(3, '0')}`;
-    
+
     const defaultItem: ServiceItem = {
       id: String(Date.now()),
       name: "New Service/Item",
@@ -803,7 +803,7 @@ export default function Services() {
       clientPhone: "",
       placeOfSupply: "Gujarat",
       date: new Date().toISOString().split("T")[0],
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       items: [defaultItem],
       subtotal: 0,
       gstPercentage: 18,
@@ -849,7 +849,7 @@ export default function Services() {
           }),
         });
       }
-    } catch {}
+    } catch { }
   };
 
   const handleUpdateInvoiceField = async (invoiceId: string, fieldName: keyof Invoice, value: any) => {
@@ -864,7 +864,7 @@ export default function Services() {
       return inv;
     });
     setInvoices(updatedInvoices);
-    
+
     const updatedInvoice = updatedInvoices.find((inv) => inv.id === invoiceId);
     if (updatedInvoice && selectedInvoice?.id === invoiceId) {
       setSelectedInvoice(updatedInvoice);
@@ -894,7 +894,7 @@ export default function Services() {
             client_address: updatedInvoice.clientAddress || ""
           }),
         });
-      } catch {}
+      } catch { }
     }
   };
 
@@ -934,7 +934,7 @@ export default function Services() {
 
   const handleDeleteInvoice = async (invoiceId: string) => {
     const isAlreadyTrashed = trashedInvoices.some((inv) => inv.id === invoiceId);
-    
+
     if (isAlreadyTrashed) {
       if (confirm("Are you sure you want to permanently delete this invoice?")) {
         setTrashedInvoices(trashedInvoices.filter((inv) => inv.id !== invoiceId));
@@ -952,7 +952,7 @@ export default function Services() {
           setSelectedInvoice(null);
         }
         toast.success("Invoice moved to trash");
-        
+
         try {
           await fetch(`/api/invoices/${invoiceId}`, { method: "DELETE" });
         } catch (e) {
@@ -969,7 +969,7 @@ export default function Services() {
       setSelectedInvoice(invoice);
     }
     toast.success("Invoice restored");
-    
+
     try {
       const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
       await fetch("/api/invoices", {
@@ -1088,7 +1088,7 @@ export default function Services() {
             <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-2">Services & Billing</h1>
             <p className="text-slate-600">Manage services, create invoices, and track payments</p>
           </div>
-          <Button 
+          <Button
             onClick={handleCreateDirectInvoice}
             className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-md"
           >
@@ -1129,13 +1129,12 @@ export default function Services() {
                       <button
                         key={invoice.id}
                         onClick={() => setSelectedInvoice(invoice)}
-                        className={`w-full text-left p-3 rounded-lg transition-all ${
-                          selectedInvoice?.id === invoice.id
+                        className={`w-full text-left p-3 rounded-lg transition-all ${selectedInvoice?.id === invoice.id
                             ? showTrash
                               ? "bg-red-50 border-2 border-red-500"
                               : "bg-indigo-100 border-2 border-indigo-500"
                             : "bg-white border border-slate-200 hover:border-indigo-300"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -1667,35 +1666,35 @@ export default function Services() {
                               <label className="block text-sm font-medium text-slate-700 mb-1">
                                 Qty
                               </label>
-                          <Input
-                            type="number"
-                            min="1"
-                            placeholder="Enter qty"
-                            value={newItem.quantity}
-                            onChange={(e) =>
-                              setNewItem({
-                                ...newItem,
-                                quantity: e.target.value,
-                              })
-                            }
-                          />
+                              <Input
+                                type="number"
+                                min="1"
+                                placeholder="Enter qty"
+                                value={newItem.quantity}
+                                onChange={(e) =>
+                                  setNewItem({
+                                    ...newItem,
+                                    quantity: e.target.value,
+                                  })
+                                }
+                              />
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-slate-700 mb-1">
                                 Unit Price
                               </label>
-                          <Input
-                            type="number"
-                            min="0"
-                            placeholder="Enter price"
-                            value={newItem.unitPrice}
-                            onChange={(e) =>
-                              setNewItem({
-                                ...newItem,
-                                unitPrice: e.target.value,
-                              })
-                            }
-                          />
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="Enter price"
+                                value={newItem.unitPrice}
+                                onChange={(e) =>
+                                  setNewItem({
+                                    ...newItem,
+                                    unitPrice: e.target.value,
+                                  })
+                                }
+                              />
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -1868,7 +1867,7 @@ export default function Services() {
                         </Button>
                       )}
                     </div>
-                    
+
                     {/* UPI QR Code */}
                     {(() => {
                       const upiId = "8866795230@apl";
