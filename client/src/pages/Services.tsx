@@ -215,6 +215,7 @@ const formatDateTime = (dateStr: string) => {
           <div class="address-section">
             <h3>Bill To</h3>
             <p class="name">${invoice.clientName}</p>
+            ${invoice.clientAddress ? `<p>${invoice.clientAddress.replace(/\n/g, '<br>')}</p>` : ''}
           </div>
         </div>
 
@@ -403,7 +404,6 @@ export default function Services() {
               title: srv.project_name ? `${srv.project_name} - Invoice` : srv.invoice_no,
               projectName: srv.project_name || "",
               clientName: srv.client_name || "",
-              clientAddress: "",
               clientGstin: "",
               clientPhone: "",
               placeOfSupply: "Gujarat",
@@ -422,6 +422,7 @@ export default function Services() {
               status: srv.status || "draft",
               notes: srv.notes || "",
               workDoneDetail: srv.work_done_detail || "",
+              clientAddress: srv.client_address || "",
             });
           }
         }
@@ -446,7 +447,7 @@ export default function Services() {
             await fetch("/api/invoices", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ invoice_no: inv.id, project_name: inv.projectName || "", client_name: inv.clientName || "", date: inv.date, due_date: inv.dueDate, items: inv.items || [], subtotal: inv.subtotal || 0, gst_percentage: inv.gstPercentage || 18, gst_amount: inv.gstAmount || 0, total: inv.total || 0, status: inv.status || "draft", notes: inv.notes || "", user_id: cu.id, work_done_detail: inv.workDoneDetail || "" }),
+              body: JSON.stringify({ invoice_no: inv.id, project_name: inv.projectName || "", client_name: inv.clientName || "", date: inv.date, due_date: inv.dueDate, items: inv.items || [], subtotal: inv.subtotal || 0, gst_percentage: inv.gstPercentage || 18, gst_amount: inv.gstAmount || 0, total: inv.total || 0, status: inv.status || "draft", notes: inv.notes || "", user_id: cu.id, work_done_detail: inv.workDoneDetail || "", client_address: inv.clientAddress || "" }),
             });
           } catch {}
         }
@@ -762,12 +763,11 @@ export default function Services() {
       title: `Invoice for New Client`,
       projectName: "",
       clientName: "New Client",
-      clientAddress: "",
       clientGstin: "",
       clientPhone: "",
       placeOfSupply: "Gujarat",
       date: new Date().toISOString().split("T")[0],
-      dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       items: [defaultItem],
       subtotal: 0,
       gstPercentage: 18,
@@ -780,6 +780,7 @@ export default function Services() {
       receivedAmount: 0,
       status: "draft",
       workDoneDetail: "",
+      clientAddress: "",
     };
 
     setInvoices([newInv, ...invoices]);
@@ -807,7 +808,8 @@ export default function Services() {
             status: newInv.status || "draft",
             notes: newInv.notes || "",
             user_id: cu.id,
-            work_done_detail: newInv.workDoneDetail || ""
+            work_done_detail: newInv.workDoneDetail || "",
+            client_address: newInv.clientAddress || ""
           }),
         });
       }
@@ -852,7 +854,8 @@ export default function Services() {
             status: updatedInvoice.status || "draft",
             notes: updatedInvoice.notes || "",
             user_id: cu.id,
-            work_done_detail: updatedInvoice.workDoneDetail || ""
+            work_done_detail: updatedInvoice.workDoneDetail || "",
+            client_address: updatedInvoice.clientAddress || ""
           }),
         });
       } catch {}
@@ -916,7 +919,8 @@ export default function Services() {
           status: invoice.status || "draft",
           notes: invoice.notes || "",
           user_id: cu.id,
-          work_done_detail: invoice.workDoneDetail || ""
+          work_done_detail: invoice.workDoneDetail || "",
+          client_address: invoice.clientAddress || ""
         }),
       });
     } catch (e) {
@@ -1132,6 +1136,17 @@ export default function Services() {
                           disabled={showTrash}
                         />
                       </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Client Address (Optional)</label>
+                      <Input
+                        placeholder="Enter client address"
+                        value={selectedInvoice.clientAddress || ""}
+                        onChange={(e) => handleUpdateInvoiceField(selectedInvoice.id, "clientAddress", e.target.value)}
+                        className="h-9 glass-sm font-medium"
+                        disabled={showTrash}
+                      />
                     </div>
 
                     <div className="flex gap-2 flex-wrap">

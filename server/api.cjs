@@ -23,6 +23,15 @@ pool.query("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS work_done_detail TEXT"
   }
 });
 
+// Migration: Alter invoices table to support client_address
+pool.query("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS client_address TEXT", (err, res) => {
+  if (err) {
+    console.error("Migration error adding client_address:", err.message);
+  } else {
+    console.log("Migration check: client_address column verified/added");
+  }
+});
+
 // ── USERS ──────────────────────────────────────────────────
 app.post("/api/signup", async (req, res) => {
   try {
@@ -194,10 +203,10 @@ app.get("/api/invoices", async (req, res) => {
 
 app.post("/api/invoices", async (req, res) => {
   try {
-    const { invoice_no, project_name, client_name, date, due_date, items, subtotal, gst_percentage, gst_amount, total, status, notes, user_id, work_done_detail } = req.body;
+    const { invoice_no, project_name, client_name, date, due_date, items, subtotal, gst_percentage, gst_amount, total, status, notes, user_id, work_done_detail, client_address } = req.body;
     const result = await pool.query(
-      `INSERT INTO invoices (invoice_no, project_name, client_name, date, due_date, items, subtotal, gst_percentage, gst_amount, total, status, notes, user_id, work_done_detail)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      `INSERT INTO invoices (invoice_no, project_name, client_name, date, due_date, items, subtotal, gst_percentage, gst_amount, total, status, notes, user_id, work_done_detail, client_address)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        ON CONFLICT (invoice_no, user_id) DO UPDATE SET
          project_name = EXCLUDED.project_name,
          client_name = EXCLUDED.client_name,
@@ -210,9 +219,10 @@ app.post("/api/invoices", async (req, res) => {
          total = EXCLUDED.total,
          status = EXCLUDED.status,
          notes = EXCLUDED.notes,
-         work_done_detail = EXCLUDED.work_done_detail
+         work_done_detail = EXCLUDED.work_done_detail,
+         client_address = EXCLUDED.client_address
        RETURNING *`,
-      [invoice_no, project_name, client_name, date, due_date, JSON.stringify(items || []), subtotal, gst_percentage, gst_amount, total, status, notes || "", user_id || null, work_done_detail || ""]
+      [invoice_no, project_name, client_name, date, due_date, JSON.stringify(items || []), subtotal, gst_percentage, gst_amount, total, status, notes || "", user_id || null, work_done_detail || "", client_address || ""]
     );
     res.json({ success: true, invoice: result.rows[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
