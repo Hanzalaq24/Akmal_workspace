@@ -495,9 +495,44 @@ export default function Services() {
     } catch {}
     
     setNewInvoiceData({ projectName: "", clientName: "" });
-    setNewInvoiceItem({ name: "" });
     setIsAddingInvoice(false);
     toast.success("Invoice created successfully");
+
+    // Auto-save custom item to akmal-items if it doesn't already exist
+    try {
+      const savedItems = JSON.parse(localStorage.getItem("akmal-items") || "[]");
+      const customName = newInvoiceItem.name.trim();
+      const exists = savedItems.find((i: any) => i.name?.toLowerCase() === customName.toLowerCase());
+      if (!exists && customName) {
+        const newItem = {
+          id: String(Date.now()),
+          name: customName,
+          itemType: "Service",
+          unit: "Nos",
+          salesPrice: 0,
+          salesPriceTax: "Without Tax",
+          purchasePrice: 0,
+          purchasePriceTax: "Without Tax",
+          gst: 0,
+          hsnOrSac: "",
+          discount: 0,
+          openingStock: 0,
+          asOfDate: new Date().toISOString(),
+          itemCode: "",
+          barcode: "",
+          lowStockAlert: false,
+          category: "No Category",
+          description: "",
+          showInStore: false,
+          image: "",
+          customFields: [],
+          partyWisePrices: [],
+        };
+        savedItems.push(newItem);
+        localStorage.setItem("akmal-items", JSON.stringify(savedItems));
+      }
+    } catch {}
+    setNewInvoiceItem({ name: "" });
   };
 
   const handleAddItem = () => {
