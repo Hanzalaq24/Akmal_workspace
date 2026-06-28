@@ -1490,7 +1490,7 @@ export default function Services() {
                                     <div>
                                       <label className="text-xs text-slate-600">GST %</label>
                                       <Select
-                                        value={String(item.gstPercentage || 18)}
+                                        value={item.gstPercentage !== undefined ? String(item.gstPercentage) : "18"}
                                         onValueChange={(val) =>
                                           handleEditItem(
                                             selectedInvoice.id,
@@ -1501,7 +1501,7 @@ export default function Services() {
                                             item.description,
                                             item.hsn,
                                             item.discount,
-                                            parseInt(val) || 0
+                                            parseInt(val)
                                           )
                                         }
                                       >
@@ -1738,11 +1738,11 @@ export default function Services() {
                                 GST Percentage (%)
                               </label>
                               <Select
-                                value={String(newItem.gstPercentage || 18)}
+                                value={newItem.gstPercentage !== undefined ? String(newItem.gstPercentage) : "18"}
                                 onValueChange={(val) =>
                                   setNewItem({
                                     ...newItem,
-                                    gstPercentage: parseInt(val) || 0,
+                                    gstPercentage: parseInt(val),
                                   })
                                 }
                               >
