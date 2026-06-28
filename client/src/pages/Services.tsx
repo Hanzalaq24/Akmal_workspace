@@ -82,7 +82,7 @@ const formatDateTime = (dateStr: string) => {
       return;
     }
     // Load company profile from Settings
-    let company: any = { name: "Akmal", address: "", mobile: "", gstin: "", email: "", pan: "", bankName: "", bankAccountName: "", bankAccountNo: "", bankIfsc: "", upiId: "", upiMobile: "" };
+    let company: any = { companyName: "Akmal", address: "", mobile: "", gstin: "", email: "", pan: "", bankName: "", bankAccountName: "", bankAccountNo: "", bankIfsc: "", upiId: "", upiMobile: "" };
     try {
       const saved = localStorage.getItem("akmal-company-profile");
       if (saved) company = JSON.parse(saved);
@@ -183,7 +183,7 @@ const formatDateTime = (dateStr: string) => {
         <!-- Header -->
         <div class="header">
           <div class="logo-area">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230.65 78.5" style="width:160px;height:54px">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 230.65 78.5">
               <defs><style>.st0{fill:#d3af37;fill-rule:evenodd}</style></defs>
               <g><path d="M194.83,58.12c-3.19,4-8.06,5.99-14.63,5.99-3.52,0-6.57-1.28-9.16-3.83-2.58-2.56-3.88-5.73-3.88-9.53,0-4.55,1.99-8.4,5.97-11.54s9.06-4.71,15.23-4.71c1.68,0,3.58.36,5.7,1.09,0-7.26-3.24-10.9-9.72-10.9-4.97,0-8.8,1.34-11.48,4.02l-3.35-6.66c1.51-1.23,3.6-2.28,6.26-3.16s5.22-1.32,7.65-1.32c6.51,0,11.24,1.48,14.18,4.44,2.95,2.96,4.42,7.67,4.42,14.12v16.09c0,3.94,1.17,6.57,3.52,7.88v3.98c-3.24,0-5.66-.46-7.27-1.38s-2.76-2.44-3.46-4.57h.02ZM194.07,41.24c-2.51-.56-4.27-.84-5.28-.84-4.02,0-7.31,1.03-9.85,3.1-2.54,2.07-3.81,4.51-3.81,7.33,0,4.67,2.75,7,8.26,7,4.02,0,7.58-1.91,10.69-5.74v-10.85h0Z"/><path d="M215.19,50.58V0h7.96v49.24c0,2.4.69,4.29,2.07,5.68s3.19,2.07,5.43,2.07v7.12c-10.31,0-15.46-4.51-15.46-13.54h0Z"/></g>
               <g><path d="M40.99,63.28l-4.23-12.95H13.92l-4.53,12.95H0L24.93,1.05h2.22l23.13,62.23h-9.3.01ZM25.65,17.14l-9.51,27.03h18.23l-8.72-27.03Z"/><path d="M85.12,63.28l-14.08-22.46-6.96,7.17v15.3h-7.96V0h7.96v39.27l17.18-20.87h9.3l-14.37,17.06,17.56,27.83h-8.63v-.02Z"/></g>
@@ -192,7 +192,7 @@ const formatDateTime = (dateStr: string) => {
             </svg>
           </div>
           <div class="company-info">
-            <h1>${company.name}</h1>
+            <h1>${company.companyName || company.name || 'Akmal'}</h1>
             <p>${company.address}</p>
             <div class="contact">
               <p><strong>Mobile:</strong> ${company.mobile} ${company.gstin ? `&nbsp;&nbsp;&nbsp; <strong>GSTIN:</strong> ${company.gstin}` : ''}</p>
@@ -392,17 +392,13 @@ export default function Services() {
     localStorage.setItem("akmal-payments", JSON.stringify(payments));
   }, [payments]);
   const [newInvoiceData, setNewInvoiceData] = useState({
-    title: "",
     projectName: "",
     clientName: "",
-    clientAddress: "",
-    clientGstin: "",
-    clientPhone: "",
-    placeOfSupply: "Gujarat",
-    dueDate: "",
-    additionalCharges: "",
-    discount: "",
-    roundOff: "",
+  });
+  const [newInvoiceItem, setNewInvoiceItem] = useState({
+    name: "",
+    quantity: "" as any,
+    unitPrice: "" as any,
   });
   const [newItem, setNewItem] = useState({
     name: "",
@@ -416,38 +412,67 @@ export default function Services() {
   });
 
   const handleAddInvoice = () => {
-    if (!newInvoiceData.projectName || !newInvoiceData.clientName || !newInvoiceData.dueDate) {
+    if (!newInvoiceData.projectName || !newInvoiceData.clientName) {
       toast.error("Please fill in all required fields");
       return;
     }
 
+    if (!newInvoiceItem.name || !newInvoiceItem.quantity || !newInvoiceItem.unitPrice) {
+      toast.error("Please add an item");
+      return;
+    }
+
+    const qty = typeof newInvoiceItem.quantity === 'string' ? parseInt(newInvoiceItem.quantity) : newInvoiceItem.quantity;
+    const price = typeof newInvoiceItem.unitPrice === 'string' ? parseFloat(newInvoiceItem.unitPrice) : newInvoiceItem.unitPrice;
+
+    if (qty <= 0 || price <= 0) {
+      toast.error("Quantity and price must be greater than 0");
+      return;
+    }
+
+    const item: ServiceItem = {
+      id: String(Date.now()),
+      name: newInvoiceItem.name,
+      billingType: "Fixed",
+      quantity: qty,
+      unitPrice: price,
+      total: qty * price,
+      description: "",
+      hsn: "",
+      discount: 0,
+      cess: 0,
+    };
+
+    const subtotal = item.total;
+    const gstAmount = calculateGST(subtotal, 18);
+
     const invoice: Invoice = {
       id: `INV-${String(invoices.length + 1).padStart(3, '0')}`,
-      title: newInvoiceData.title || `${newInvoiceData.projectName} - Invoice`,
+      title: `${newInvoiceData.projectName} - Invoice`,
       projectName: newInvoiceData.projectName,
       clientName: newInvoiceData.clientName,
-      clientAddress: newInvoiceData.clientAddress,
-      clientGstin: newInvoiceData.clientGstin,
-      clientPhone: newInvoiceData.clientPhone,
-      placeOfSupply: newInvoiceData.placeOfSupply || "Gujarat",
+      clientAddress: "",
+      clientGstin: "",
+      clientPhone: "",
+      placeOfSupply: "Gujarat",
       date: new Date().toISOString(),
-      dueDate: newInvoiceData.dueDate,
-      items: [],
-      subtotal: 0,
+      dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+      items: [item],
+      subtotal,
       gstPercentage: 18,
-      gstAmount: 0,
-      additionalCharges: Number(newInvoiceData.additionalCharges) || 0,
-      discount: Number(newInvoiceData.discount) || 0,
-      roundOff: Number(newInvoiceData.roundOff) || 0,
+      gstAmount,
+      additionalCharges: 0,
+      discount: 0,
+      roundOff: 0,
       cess: 0,
-      total: 0,
+      total: subtotal + gstAmount,
       receivedAmount: 0,
       status: "draft",
     };
 
     setInvoices([...invoices, invoice]);
     setSelectedInvoice(invoice);
-    
+
     // Auto-save client to localStorage
     if (newInvoiceData.clientName.trim()) {
       try {
@@ -458,10 +483,10 @@ export default function Services() {
             id: String(Date.now()),
             name: newInvoiceData.clientName.trim(),
             email: "",
-            phone: newInvoiceData.clientPhone?.trim() || "",
-            address: newInvoiceData.clientAddress?.trim() || "",
-            gstin: newInvoiceData.clientGstin?.trim() || "",
-            placeOfSupply: newInvoiceData.placeOfSupply?.trim() || "Gujarat",
+            phone: "",
+            address: "",
+            gstin: "",
+            placeOfSupply: "Gujarat",
             userId: "",
           });
           localStorage.setItem("akmal-clients", JSON.stringify(savedClients));
@@ -479,7 +504,8 @@ export default function Services() {
       });
     } catch {}
     
-    setNewInvoiceData({ title: "", projectName: "", clientName: "", clientAddress: "", clientGstin: "", clientPhone: "", placeOfSupply: "Gujarat", dueDate: "", additionalCharges: "", discount: "", roundOff: "" });
+    setNewInvoiceData({ projectName: "", clientName: "" });
+    setNewInvoiceItem({ name: "", quantity: "", unitPrice: "" });
     setIsAddingInvoice(false);
     toast.success("Invoice created successfully");
   };
@@ -721,18 +747,6 @@ export default function Services() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Invoice Title
-                  </label>
-                  <Input
-                    placeholder="e.g. Website Development Invoice"
-                    value={newInvoiceData.title}
-                    onChange={(e) =>
-                      setNewInvoiceData({ ...newInvoiceData, title: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Project Name
                   </label>
                   <Input
@@ -747,158 +761,109 @@ export default function Services() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Client Name
                   </label>
-                  <Select 
-                    value={newInvoiceData.clientName}
-                    onValueChange={(value) => {
-                      try {
-                        const savedClients = JSON.parse(localStorage.getItem("akmal-clients") || "[]");
-                        const client = savedClients.find((c: any) => c.name === value);
-                        if (client) {
-                          setNewInvoiceData({
-                            ...newInvoiceData,
-                            clientName: client.name,
-                            clientAddress: client.address || "",
-                            clientGstin: client.gstin || "",
-                            clientPhone: client.phone || "",
-                            placeOfSupply: client.placeOfSupply || "Gujarat",
-                          });
-                        } else {
-                          setNewInvoiceData({ ...newInvoiceData, clientName: value });
-                        }
-                      } catch {
-                        setNewInvoiceData({ ...newInvoiceData, clientName: value });
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select saved client or type new" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(() => {
-                        try {
-                          const savedClients = JSON.parse(localStorage.getItem("akmal-clients") || "[]");
-                          if (savedClients.length === 0) return <SelectItem value="__none__" disabled>No saved clients</SelectItem>;
-                          return savedClients.map((c: any) => (
-                            <SelectItem key={c.id} value={c.name}>
-                              {c.name}
-                            </SelectItem>
-                          ));
-                        } catch { return <SelectItem value="__none__" disabled>No saved clients</SelectItem>; }
-                      })()}
-                    </SelectContent>
-                  </Select>
                   <Input
-                    placeholder="Or type new client name"
+                    placeholder="Enter client name"
                     value={newInvoiceData.clientName}
                     onChange={(e) =>
                       setNewInvoiceData({ ...newInvoiceData, clientName: e.target.value })
                     }
-                    className="mt-2"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Client Address
-                  </label>
-                  <Input
-                    placeholder="Enter client address"
-                    value={newInvoiceData.clientAddress}
-                    onChange={(e) =>
-                      setNewInvoiceData({ ...newInvoiceData, clientAddress: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Client GSTIN
-                    </label>
-                    <Input
-                      placeholder="22AAAAA0000A1Z5"
-                      value={newInvoiceData.clientGstin}
-                      onChange={(e) =>
-                        setNewInvoiceData({ ...newInvoiceData, clientGstin: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Client Phone
-                    </label>
-                    <Input
-                      placeholder="9876543210"
-                      value={newInvoiceData.clientPhone}
-                      onChange={(e) =>
-                        setNewInvoiceData({ ...newInvoiceData, clientPhone: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Place of Supply
-                    </label>
-                    <Input
-                      placeholder="Gujarat"
-                      value={newInvoiceData.placeOfSupply}
-                      onChange={(e) =>
-                        setNewInvoiceData({ ...newInvoiceData, placeOfSupply: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Due Date
-                    </label>
-                    <Input
-                      type="date"
-                      value={newInvoiceData.dueDate}
-                      onChange={(e) =>
-                        setNewInvoiceData({ ...newInvoiceData, dueDate: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Additional Charges (₹)
-                    </label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={newInvoiceData.additionalCharges}
-                      onChange={(e) =>
-                        setNewInvoiceData({ ...newInvoiceData, additionalCharges: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Discount (₹)
-                    </label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={newInvoiceData.discount}
-                      onChange={(e) =>
-                        setNewInvoiceData({ ...newInvoiceData, discount: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Round Off (₹)
-                    </label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={newInvoiceData.roundOff}
-                      onChange={(e) =>
-                        setNewInvoiceData({ ...newInvoiceData, roundOff: e.target.value })
-                      }
-                    />
+                <div className="border-t border-slate-200 pt-4">
+                  <h4 className="font-medium text-slate-900 mb-3">Add Item</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Item Name
+                      </label>
+                      <Select
+                        value={newInvoiceItem.name}
+                        onValueChange={(value) => {
+                          try {
+                            const savedItems = JSON.parse(localStorage.getItem("akmal-items") || "[]");
+                            const found = savedItems.find((i: any) => i.name === value);
+                            if (found) {
+                              setNewInvoiceItem({
+                                ...newInvoiceItem,
+                                name: found.name,
+                                unitPrice: String(found.salesPrice || ""),
+                              });
+                            } else {
+                              setNewInvoiceItem({ ...newInvoiceItem, name: value });
+                            }
+                          } catch {
+                            setNewInvoiceItem({ ...newInvoiceItem, name: value });
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select item or type custom" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(() => {
+                            try {
+                              const savedItems = JSON.parse(localStorage.getItem("akmal-items") || "[]");
+                              if (savedItems.length === 0) {
+                                return <SelectItem value="__none__" disabled>No saved items</SelectItem>;
+                              }
+                              return savedItems.map((item: any) => (
+                                <SelectItem key={item.id} value={item.name}>
+                                  {item.name}
+                                </SelectItem>
+                              ));
+                            } catch {
+                              return <SelectItem value="__none__" disabled>No saved items</SelectItem>;
+                            }
+                          })()}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Or type custom item name"
+                        value={newInvoiceItem.name}
+                        onChange={(e) =>
+                          setNewInvoiceItem({ ...newInvoiceItem, name: e.target.value })
+                        }
+                        className="mt-2"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Qty
+                        </label>
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="1"
+                          value={newInvoiceItem.quantity}
+                          onChange={(e) =>
+                            setNewInvoiceItem({ ...newInvoiceItem, quantity: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Unit Price
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={newInvoiceItem.unitPrice}
+                          onChange={(e) =>
+                            setNewInvoiceItem({ ...newInvoiceItem, unitPrice: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Total
+                        </label>
+                        <div className="bg-slate-100 rounded-md p-2 text-center font-semibold text-slate-900">
+                          ₹{((Number(newInvoiceItem.quantity) || 0) * (Number(newInvoiceItem.unitPrice) || 0)).toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <Button
