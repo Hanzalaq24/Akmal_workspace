@@ -266,8 +266,10 @@ const formatDateTime = (dateStr: string) => {
           <div class="tax-breakdown">
             <table>
               <tr><td>Taxable Amount</td><td>₹ ${taxable.toLocaleString('en-IN')}</td></tr>
+              ${invoice.gstAmount > 0 ? `
               <tr><td>CGST</td><td>₹ ${halfGst.toLocaleString('en-IN')}</td></tr>
               <tr><td>SGST</td><td>₹ ${halfGst.toLocaleString('en-IN')}</td></tr>
+              ` : ''}
               ${(invoice.additionalCharges || 0) > 0 ? `<tr><td>Additional Charges</td><td>₹ ${(invoice.additionalCharges || 0).toLocaleString('en-IN')}</td></tr>` : ''}
               ${(invoice.discount || 0) > 0 ? `<tr><td>Discount</td><td style="color:#ef4444">-₹ ${(invoice.discount || 0).toLocaleString('en-IN')}</td></tr>` : ''}
               ${(invoice.roundOff || 0) > 0 ? `<tr><td>Round Off</td><td>₹ ${(invoice.roundOff || 0).toLocaleString('en-IN')}</td></tr>` : ''}
