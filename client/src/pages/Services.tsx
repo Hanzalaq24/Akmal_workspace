@@ -46,6 +46,7 @@ interface Invoice {
   receivedAmount: number;
   status: "draft" | "sent" | "paid";
   notes?: string;
+  workDoneDetail?: string;
 }
 
 const SERVICE_TYPES = [
@@ -313,7 +314,22 @@ const formatDateTime = (dateStr: string) => {
             <p style="font-size: 10px; color: #444; margin-top: 2px;">Amount: <strong>₹${(invoice.total - (invoice.receivedAmount || 0)).toLocaleString('en-IN')}</strong></p>
           </div>
         </div>
+
+        ${invoice.workDoneDetail ? `
+          <div style="text-align: center; margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 10px;">
+            <a href="#work-details" style="color: #4f46e5; text-decoration: underline; font-size: 13px; font-weight: 600;">View More Details</a>
+          </div>
+        ` : ''}
       </div>
+
+      ${invoice.workDoneDetail ? `
+        <div class="page" style="page-break-before: always; margin-top: 40px;" id="work-details">
+          <h2 style="font-size: 20px; font-weight: 700; color: #000; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 20px; text-transform: uppercase;">Work Done in Detail</h2>
+          <div style="font-size: 13px; line-height: 1.6; color: #333;" class="work-detail-content">
+            ${invoice.workDoneDetail}
+          </div>
+        </div>
+      ` : ''}
     </body>
     </html>
   `;
@@ -404,6 +420,7 @@ export default function Services() {
               receivedAmount: 0,
               status: srv.status || "draft",
               notes: srv.notes || "",
+              workDoneDetail: srv.work_done_detail || "",
             });
           }
         }
@@ -428,7 +445,7 @@ export default function Services() {
             await fetch("/api/invoices", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ invoice_no: inv.id, project_name: inv.projectName || "", client_name: inv.clientName || "", date: inv.date, due_date: inv.dueDate, items: inv.items || [], subtotal: inv.subtotal || 0, gst_percentage: inv.gstPercentage || 18, gst_amount: inv.gstAmount || 0, total: inv.total || 0, status: inv.status || "draft", notes: inv.notes || "", user_id: cu.id }),
+              body: JSON.stringify({ invoice_no: inv.id, project_name: inv.projectName || "", client_name: inv.clientName || "", date: inv.date, due_date: inv.dueDate, items: inv.items || [], subtotal: inv.subtotal || 0, gst_percentage: inv.gstPercentage || 18, gst_amount: inv.gstAmount || 0, total: inv.total || 0, status: inv.status || "draft", notes: inv.notes || "", user_id: cu.id, work_done_detail: inv.workDoneDetail || "" }),
             });
           } catch {}
         }
@@ -761,6 +778,7 @@ export default function Services() {
       total: 0,
       receivedAmount: 0,
       status: "draft",
+      workDoneDetail: "",
     };
 
     setInvoices([newInv, ...invoices]);
@@ -787,7 +805,8 @@ export default function Services() {
             total: newInv.total || 0,
             status: newInv.status || "draft",
             notes: newInv.notes || "",
-            user_id: cu.id
+            user_id: cu.id,
+            work_done_detail: newInv.workDoneDetail || ""
           }),
         });
       }
@@ -831,7 +850,8 @@ export default function Services() {
             total: updatedInvoice.total || 0,
             status: updatedInvoice.status || "draft",
             notes: updatedInvoice.notes || "",
-            user_id: cu.id
+            user_id: cu.id,
+            work_done_detail: updatedInvoice.workDoneDetail || ""
           }),
         });
       } catch {}
@@ -894,7 +914,8 @@ export default function Services() {
           total: invoice.total || 0,
           status: invoice.status || "draft",
           notes: invoice.notes || "",
-          user_id: cu.id
+          user_id: cu.id,
+          work_done_detail: invoice.workDoneDetail || ""
         }),
       });
     } catch (e) {
@@ -1606,6 +1627,24 @@ export default function Services() {
                       onChange={(e) => handleUpdateInvoiceField(selectedInvoice.id, "notes", e.target.value)}
                       className="glass-sm font-medium"
                       disabled={showTrash}
+                    />
+                  </div>
+                </Card>
+
+                {/* Work Done in Detail */}
+                <Card className="glass">
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">Work Done in Detail</h3>
+                    <div className="text-xs text-slate-500 mb-2">
+                      Supports rich text (bold, lists) and copy-pasting images directly.
+                    </div>
+                    <div
+                      contentEditable={!showTrash}
+                      suppressContentEditableWarning={true}
+                      onBlur={(e) => handleUpdateInvoiceField(selectedInvoice.id, "workDoneDetail", e.currentTarget.innerHTML)}
+                      dangerouslySetInnerHTML={{ __html: selectedInvoice.workDoneDetail || "" }}
+                      className="min-h-[150px] p-3 border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 overflow-y-auto rich-text-editor"
+                      style={{ outline: 'none' }}
                     />
                   </div>
                 </Card>
