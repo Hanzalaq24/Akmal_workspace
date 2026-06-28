@@ -153,16 +153,20 @@ const formatDateTime = (dateStr: string) => {
         .items-table tr:nth-child(even) { background: #f9fafb; }
         
         /* Totals */
-        .totals-section { display: flex; flex-direction: column; align-items: flex-end; margin: 15px 0; border-top: 2px solid #333; padding-top: 10px; }
-        .totals-row { display: flex; justify-content: flex-end; width: 280px; padding: 4px 0; font-size: 11px; }
-        .totals-row .label { text-align: right; padding-right: 15px; color: #666; width: 180px; }
-        .totals-row .value { text-align: right; font-weight: 500; width: 100px; }
-        .total-row { display: flex; justify-content: flex-end; width: 280px; padding: 8px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; margin-top: 4px; font-size: 14px; font-weight: 800; }
-        .total-row .total-label { text-align: right; padding-right: 15px; width: 180px; }
-        .total-row .total-value { text-align: right; color: #000; width: 100px; }
-        .received-row { display: flex; justify-content: flex-end; width: 280px; padding: 6px 0; font-size: 11px; color: #059669; }
-        .received-row .r-label { text-align: right; padding-right: 15px; width: 180px; }
-        .received-row .r-value { text-align: right; font-weight: 600; width: 100px; }
+        .totals-section { margin-top: 20px; border-top: 2px solid #000; }
+        .subtotal-row { display: flex; justify-content: space-between; padding: 12px 0; font-size: 12px; font-weight: 700; border-bottom: 2px solid #000; }
+        .tax-breakdown { display: flex; justify-content: flex-end; padding: 10px 0; }
+        .tax-breakdown table { width: 280px; }
+        .tax-breakdown table td { padding: 4px 0; font-size: 12px; }
+        .tax-breakdown table td:first-child { text-align: right; padding-right: 15px; color: #555; }
+        .tax-breakdown table td:last-child { text-align: right; font-weight: 500; }
+        .total-row-main { display: flex; justify-content: flex-end; padding: 10px 0; border-top: 1px solid #ccc; border-bottom: 2px solid #000; margin: 5px 0; }
+        .total-row-main .total-label { font-weight: 700; font-size: 13px; width: 280px; }
+        .total-row-main .total-label span { padding-right: 15px; }
+        .total-row-main .total-value { text-align: right; font-weight: 800; font-size: 15px; }
+        .received-row { display: flex; justify-content: flex-end; padding: 8px 0; font-size: 12px; }
+        .received-row .r-label { width: 280px; text-align: right; padding-right: 15px; color: #555; }
+        .received-row .r-value { text-align: right; font-weight: 600; }
         .words-row { display: flex; justify-content: flex-end; padding: 10px 0; margin-top: 10px; border-top: 1px solid #ccc; }
         .words-row .words-label { text-align: right; padding-right: 15px; font-weight: 700; font-size: 12px; width: 280px; }
         .words-row .words-value { font-size: 11px; font-weight: 500; }
