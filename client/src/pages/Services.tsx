@@ -127,9 +127,10 @@ const formatDateTime = (dateStr: string) => {
         .page { width: 210mm; margin: 0 auto; padding: 15mm 20mm; background: white; }
         
         /* Header */
-        .header { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 8px; }
-        .logo-area { flex-shrink: 0; width: 110px; height: 110px; }
-        .logo-area svg { width: 110px; height: 110px; }
+        .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 8px; }
+        .logo-area { flex-shrink: 0; width: 180px; }
+        .logo-area svg { width: 180px; height: auto; }
+        .company-info { text-align: right; }
         .company-info h1 { font-size: 32px; font-weight: 800; color: #000; margin-bottom: 4px; }
         .company-info p { font-size: 11px; color: #444; line-height: 1.5; }
         .company-info .contact { font-size: 11px; color: #444; margin-top: 4px; }
@@ -138,36 +139,30 @@ const formatDateTime = (dateStr: string) => {
         .invoice-bar { background: #333; color: white; padding: 10px 20px; display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin: 12px 0; }
         
         /* Bill To / Ship To */
-        .addresses { display: flex; justify-content: space-between; margin: 15px 0; gap: 40px; }
-        .address-section h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #000; margin-bottom: 6px; }
-        .address-section .name { font-size: 16px; font-weight: 700; color: #000; margin-bottom: 4px; }
-        .address-section p { font-size: 11px; color: #444; line-height: 1.6; }
+        .addresses { display: flex; justify-content: space-between; gap: 20px; margin: 15px 0; }
+        .addresses .address-section { width: 48%; }
+        .addresses .address-section h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #666; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1px solid #eee; }
+        .addresses .address-section .name { font-size: 14px; font-weight: 700; color: #000; margin-bottom: 4px; }
+        .addresses .address-section p { font-size: 11px; color: #444; line-height: 1.4; }
         
-        /* Table */
-        .items-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .items-table thead th { padding: 10px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #000; border-top: 2px solid #000; border-bottom: 1px solid #ccc; text-align: left; }
-        .items-table thead th.text-right { text-align: right; }
-        .items-table tbody td { padding: 10px 12px; font-size: 12px; color: #1a1a1a; border-bottom: 1px solid #eee; }
-        .items-table tbody td.text-right { text-align: right; }
-        .items-table tbody td.item-name { font-weight: 600; }
-        .items-table tbody td.desc { font-size: 10px; color: #888; }
-        .items-table tbody td.tax { font-size: 10px; color: #666; text-align: right; }
+        /* Items Table */
+        .items-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 11px; }
+        .items-table th { background: #f3f4f6; color: #374151; font-weight: 700; text-transform: uppercase; padding: 8px; text-align: left; border: 1px solid #e5e7eb; }
+        .items-table td { padding: 8px; border: 1px solid #e5e7eb; color: #4b5563; }
+        .items-table .text-right { text-align: right; }
+        .items-table tr:nth-child(even) { background: #f9fafb; }
         
-        /* Subtotal & Totals */
-        .totals-section { margin-top: 20px; border-top: 2px solid #000; }
-        .subtotal-row { display: flex; justify-content: space-between; padding: 12px 0; font-size: 12px; font-weight: 700; border-bottom: 2px solid #000; }
-        .tax-breakdown { display: flex; justify-content: flex-end; padding: 10px 0; }
-        .tax-breakdown table { width: 280px; }
-        .tax-breakdown table td { padding: 4px 0; font-size: 12px; }
-        .tax-breakdown table td:first-child { text-align: right; padding-right: 15px; color: #555; }
-        .tax-breakdown table td:last-child { text-align: right; font-weight: 500; }
-        .total-row-main { display: flex; justify-content: flex-end; padding: 10px 0; border-top: 1px solid #ccc; border-bottom: 2px solid #000; margin: 5px 0; }
-        .total-row-main .total-label { font-weight: 700; font-size: 13px; width: 280px; }
-        .total-row-main .total-label span { padding-right: 15px; }
-        .total-row-main .total-value { text-align: right; font-weight: 800; font-size: 15px; }
-        .received-row { display: flex; justify-content: flex-end; padding: 8px 0; font-size: 12px; }
-        .received-row .r-label { width: 280px; text-align: right; padding-right: 15px; color: #555; }
-        .received-row .r-value { text-align: right; font-weight: 600; }
+        /* Totals */
+        .totals-section { display: flex; flex-direction: column; align-items: flex-end; margin: 15px 0; border-top: 2px solid #333; padding-top: 10px; }
+        .totals-row { display: flex; justify-content: flex-end; width: 280px; padding: 4px 0; font-size: 11px; }
+        .totals-row .label { text-align: right; padding-right: 15px; color: #666; width: 180px; }
+        .totals-row .value { text-align: right; font-weight: 500; width: 100px; }
+        .total-row { display: flex; justify-content: flex-end; width: 280px; padding: 8px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; margin-top: 4px; font-size: 14px; font-weight: 800; }
+        .total-row .total-label { text-align: right; padding-right: 15px; width: 180px; }
+        .total-row .total-value { text-align: right; color: #000; width: 100px; }
+        .received-row { display: flex; justify-content: flex-end; width: 280px; padding: 6px 0; font-size: 11px; color: #059669; }
+        .received-row .r-label { text-align: right; padding-right: 15px; width: 180px; }
+        .received-row .r-value { text-align: right; font-weight: 600; width: 100px; }
         .words-row { display: flex; justify-content: flex-end; padding: 10px 0; margin-top: 10px; border-top: 1px solid #ccc; }
         .words-row .words-label { text-align: right; padding-right: 15px; font-weight: 700; font-size: 12px; width: 280px; }
         .words-row .words-value { font-size: 11px; font-weight: 500; }
@@ -193,7 +188,9 @@ const formatDateTime = (dateStr: string) => {
             </svg>
           </div>
           <div class="company-info">
-            <p>11, CHHIPAVAD, Near Masjid, Nana Varachha, Surat, Gujarat, 395006</p>
+            <p>11, CHHIPAVAD, Near Masjid,<br>
+            Nana Varachha, Surat, Gujarat,<br>
+            395006</p>
             <div class="contact">
               <p><strong>GSTIN:</strong> 24ALUPB9563G1ZR</p>
               <p><strong>Email:</strong> support@akmal.in</p>
