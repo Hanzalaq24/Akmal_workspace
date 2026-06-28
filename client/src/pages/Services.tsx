@@ -801,7 +801,7 @@ export default function Services() {
       id: invId,
       title: `Invoice for New Client`,
       projectName: "",
-      clientName: "New Client",
+      clientName: "",
       clientGstin: "",
       clientPhone: "",
       placeOfSupply: "Gujarat",
@@ -1159,6 +1159,7 @@ export default function Services() {
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1">Client Name</label>
                         <Input
+                          placeholder="Enter Client Name"
                           value={selectedInvoice.clientName || ""}
                           onChange={(e) => handleUpdateInvoiceField(selectedInvoice.id, "clientName", e.target.value)}
                           className="h-9 glass-sm font-medium"
