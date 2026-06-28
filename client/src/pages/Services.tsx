@@ -678,7 +678,8 @@ export default function Services() {
     description?: string,
     hsn?: string,
     discount?: number,
-    cess?: number
+    cess?: number,
+    name?: string
   ) => {
     const invoice = invoices.find((inv) => inv.id === invoiceId);
     if (!invoice) return;
@@ -695,6 +696,7 @@ export default function Services() {
             hsn: hsn !== undefined ? hsn : item.hsn,
             discount: discount !== undefined ? discount : item.discount,
             cess: cess !== undefined ? cess : item.cess,
+            name: name !== undefined ? name : item.name,
           }
         : item
     );
@@ -717,6 +719,122 @@ export default function Services() {
     setInvoices(invoices.map((inv) => (inv.id === invoiceId ? updatedInvoice : inv)));
     if (selectedInvoice?.id === invoiceId) {
       setSelectedInvoice(updatedInvoice);
+    }
+  };
+
+  const handleCreateDirectInvoice = async () => {
+    const nextInvNum = invoices.length + trashedInvoices.length + 1;
+    const invId = `INV-${String(nextInvNum).padStart(3, '0')}`;
+    
+    const defaultItem: ServiceItem = {
+      id: String(Date.now()),
+      name: "New Service/Item",
+      billingType: "Fixed",
+      quantity: 1,
+      unitPrice: 0,
+      total: 0,
+      description: "",
+      hsn: "",
+      discount: 0,
+      cess: 0,
+    };
+
+    const newInv: Invoice = {
+      id: invId,
+      title: `Invoice for New Client`,
+      projectName: "",
+      clientName: "New Client",
+      clientAddress: "",
+      clientGstin: "",
+      clientPhone: "",
+      placeOfSupply: "Gujarat",
+      date: new Date().toISOString().split("T")[0],
+      dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      items: [defaultItem],
+      subtotal: 0,
+      gstPercentage: 18,
+      gstAmount: 0,
+      additionalCharges: 0,
+      discount: 0,
+      roundOff: 0,
+      cess: 0,
+      total: 0,
+      receivedAmount: 0,
+      status: "draft",
+    };
+
+    setInvoices([newInv, ...invoices]);
+    setSelectedInvoice(newInv);
+    setShowTrash(false);
+    toast.success(`Created draft ${invId}`);
+
+    try {
+      const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+      if (cu?.id) {
+        await fetch("/api/invoices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoice_no: newInv.id,
+            project_name: newInv.projectName || "",
+            client_name: newInv.clientName || "",
+            date: newInv.date,
+            due_date: newInv.dueDate,
+            items: newInv.items || [],
+            subtotal: newInv.subtotal || 0,
+            gst_percentage: newInv.gstPercentage || 18,
+            gst_amount: newInv.gstAmount || 0,
+            total: newInv.total || 0,
+            status: newInv.status || "draft",
+            notes: newInv.notes || "",
+            user_id: cu.id
+          }),
+        });
+      }
+    } catch {}
+  };
+
+  const handleUpdateInvoiceField = async (invoiceId: string, fieldName: keyof Invoice, value: any) => {
+    const updatedInvoices = invoices.map((inv) => {
+      if (inv.id === invoiceId) {
+        const updated = { ...inv, [fieldName]: value };
+        if (fieldName === "clientName") {
+          updated.title = `Invoice for ${value}`;
+        }
+        return updated;
+      }
+      return inv;
+    });
+    setInvoices(updatedInvoices);
+    
+    const updatedInvoice = updatedInvoices.find((inv) => inv.id === invoiceId);
+    if (updatedInvoice && selectedInvoice?.id === invoiceId) {
+      setSelectedInvoice(updatedInvoice);
+    }
+
+    if (updatedInvoice) {
+      try {
+        const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+        await fetch("/api/invoices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoice_no: updatedInvoice.id,
+            project_name: updatedInvoice.projectName || "",
+            client_name: updatedInvoice.clientName || "",
+            date: updatedInvoice.date,
+            due_date: updatedInvoice.dueDate,
+            items: updatedInvoice.items || [],
+            subtotal: updatedInvoice.subtotal || 0,
+            gst_percentage: updatedInvoice.gstPercentage || 18,
+            gst_amount: updatedInvoice.gstAmount || 0,
+            total: updatedInvoice.total || 0,
+            status: updatedInvoice.status || "draft",
+            notes: updatedInvoice.notes || "",
+            user_id: cu.id
+          }),
+        });
+      } catch {}
     }
   };
 
@@ -874,97 +992,13 @@ export default function Services() {
             <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-2">Services & Billing</h1>
             <p className="text-slate-600">Manage services, create invoices, and track payments</p>
           </div>
-          <Dialog open={isAddingInvoice} onOpenChange={setIsAddingInvoice}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                New Invoice
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create New Invoice</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Client Name
-                  </label>
-                  <Input
-                    placeholder="Enter client name"
-                    value={newInvoiceData.clientName}
-                    onChange={(e) =>
-                      setNewInvoiceData({ ...newInvoiceData, clientName: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="border-t border-slate-200 pt-4">
-                  <h4 className="font-medium text-slate-900 mb-3">Add Item</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Item Name
-                      </label>
-                      <Select
-                        value={newInvoiceItem.name}
-                        onValueChange={(value) => {
-                          try {
-                            const savedItems = JSON.parse(localStorage.getItem("akmal-items") || "[]");
-                            const found = savedItems.find((i: any) => i.name === value);
-                            if (found) {
-                              setNewInvoiceItem({
-                                ...newInvoiceItem,
-                                name: found.name,
-                              });
-                            } else {
-                              setNewInvoiceItem({ ...newInvoiceItem, name: value });
-                            }
-                          } catch {
-                            setNewInvoiceItem({ ...newInvoiceItem, name: value });
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select item or type custom" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(() => {
-                            try {
-                              const savedItems = JSON.parse(localStorage.getItem("akmal-items") || "[]");
-                              if (savedItems.length === 0) {
-                                return <SelectItem value="__none__" disabled>No saved items</SelectItem>;
-                              }
-                              return savedItems.map((item: any) => (
-                                <SelectItem key={item.id} value={item.name}>
-                                  {item.name}
-                                </SelectItem>
-                              ));
-                            } catch {
-                              return <SelectItem value="__none__" disabled>No saved items</SelectItem>;
-                            }
-                          })()}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        placeholder="Or type custom item name"
-                        value={newInvoiceItem.name}
-                        onChange={(e) =>
-                          setNewInvoiceItem({ ...newInvoiceItem, name: e.target.value })
-                        }
-                        className="mt-2"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleAddInvoice}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white"
-                >
-                  Create Invoice
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            onClick={handleCreateDirectInvoice}
+            className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-md"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Invoice
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -1037,27 +1071,44 @@ export default function Services() {
                 {/* Invoice Header */}
                 <Card className="glass">
                   <div className="p-6">
-                    <div className="flex items-start justify-between mb-6">
-                      <div>
-                        <h2 className="text-2xl font-bold text-slate-900">
+                    <div className="flex items-start justify-between mb-6 gap-4">
+                      <div className="flex-1">
+                        <h2 className="text-2xl font-bold text-slate-900 mb-1">
                           {selectedInvoice.title || selectedInvoice.id}
                         </h2>
                         <p className="text-sm text-slate-500">{selectedInvoice.id}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-slate-600">Date</p>
-                        <p className="font-medium text-slate-900">{formatDateTime(selectedInvoice.date)}</p>
+                      <div className="w-48 text-right">
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Invoice Date</label>
+                        <Input
+                          type="date"
+                          value={selectedInvoice.date ? selectedInvoice.date.split("T")[0] : ""}
+                          onChange={(e) => handleUpdateInvoiceField(selectedInvoice.id, "date", e.target.value)}
+                          className="h-9 glass-sm text-right font-medium"
+                          disabled={showTrash}
+                        />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div>
-                        <p className="text-sm text-slate-600">Client</p>
-                        <p className="font-medium text-slate-900">{selectedInvoice.clientName}</p>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Client Name</label>
+                        <Input
+                          value={selectedInvoice.clientName || ""}
+                          onChange={(e) => handleUpdateInvoiceField(selectedInvoice.id, "clientName", e.target.value)}
+                          className="h-9 glass-sm font-medium"
+                          disabled={showTrash}
+                        />
                       </div>
                       <div>
-                        <p className="text-sm text-slate-600">Due Date</p>
-                        <p className="font-medium text-slate-900">{selectedInvoice.dueDate}</p>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Due Date</label>
+                        <Input
+                          type="date"
+                          value={selectedInvoice.dueDate ? selectedInvoice.dueDate.split("T")[0] : ""}
+                          onChange={(e) => handleUpdateInvoiceField(selectedInvoice.id, "dueDate", e.target.value)}
+                          className="h-9 glass-sm font-medium"
+                          disabled={showTrash}
+                        />
                       </div>
                     </div>
 
@@ -1190,7 +1241,28 @@ export default function Services() {
                             <div className="flex-1">
                               {isEditingItems ? (
                                 <div className="space-y-2">
-                                  <p className="font-medium text-slate-900">{item.name}</p>
+                                  <div>
+                                    <label className="text-xs font-semibold text-slate-600">Item Name</label>
+                                    <Input
+                                      type="text"
+                                      value={item.name}
+                                      onChange={(e) =>
+                                        handleEditItem(
+                                          selectedInvoice.id,
+                                          item.id,
+                                          item.quantity,
+                                          item.unitPrice,
+                                          item.billingType,
+                                          item.description,
+                                          item.hsn,
+                                          item.discount,
+                                          item.cess,
+                                          e.target.value
+                                        )
+                                      }
+                                      className="h-9 glass-sm font-medium"
+                                    />
+                                  </div>
                                   <div className="grid grid-cols-2 gap-2">
                                     <div>
                                       <label className="text-xs text-slate-600">Billing Type</label>
@@ -1522,6 +1594,19 @@ export default function Services() {
                         </div>
                       </div>
                     )}
+                  </div>
+                </Card>
+                {/* Notes */}
+                <Card className="glass">
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">Invoice Notes</h3>
+                    <Input
+                      placeholder="Add terms, bank details, or additional notes..."
+                      value={selectedInvoice.notes || ""}
+                      onChange={(e) => handleUpdateInvoiceField(selectedInvoice.id, "notes", e.target.value)}
+                      className="glass-sm font-medium"
+                      disabled={showTrash}
+                    />
                   </div>
                 </Card>
 
