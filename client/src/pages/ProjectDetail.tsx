@@ -320,12 +320,12 @@ export default function ProjectDetail() {
     
     const invoice = {
       id: `INV-${String(Date.now()).slice(-6)}`,
-      title: `${project.name} - Completion Invoice`,
-      projectName: project.name,
+      title: `Completion Invoice`,
+      projectName: "",
       clientName: project.client,
       date: new Date().toISOString(),
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      items: [{ id: "1", name: `${project.name} - Complete Project`, billingType: "Fixed", quantity: 1, unitPrice: project.budget, total: project.budget, description: "Auto-generated upon project completion" }],
+      items: [{ id: "1", name: `Complete Project`, billingType: "Fixed", quantity: 1, unitPrice: project.budget, total: project.budget, description: "Auto-generated upon project completion" }],
       subtotal: project.budget,
       gstPercentage: 18,
       gstAmount: Math.round(project.budget * 0.18),

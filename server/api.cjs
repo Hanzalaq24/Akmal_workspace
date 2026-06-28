@@ -218,7 +218,12 @@ app.put("/api/invoices/:id", async (req, res) => {
 
 app.delete("/api/invoices/:id", async (req, res) => {
   try {
-    await pool.query("DELETE FROM invoices WHERE id=$1", [req.params.id]);
+    const idVal = req.params.id;
+    if (isNaN(Number(idVal))) {
+      await pool.query("DELETE FROM invoices WHERE invoice_no=$1", [idVal]);
+    } else {
+      await pool.query("DELETE FROM invoices WHERE id=$1 OR invoice_no=$1", [Number(idVal), idVal]);
+    }
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Edit2, Download, Eye, DollarSign, Package, FileText, Save, Share2, Printer, CreditCard, TrendingUp, Users, LayoutGrid, Receipt, UserRound } from "lucide-react";
+import { Plus, Trash2, Edit2, Download, Eye, DollarSign, Package, FileText, Save, Share2, Printer, CreditCard, TrendingUp, Users, LayoutGrid, Receipt, UserRound, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
@@ -192,7 +192,7 @@ const formatDateTime = (dateStr: string) => {
             </svg>
           </div>
           <div class="company-info">
-            <p>FF, 11 T P NO 20,0037, CHHIPAVAD, GAMTAL, VARACHHA ROAD, NEAR MASJID, Nana Varachha, Surat, Surat, Surat, Gujarat, 395006</p>
+            <p>11, CHHIPAVAD, Near Masjid, Nana Varachha, Surat, Gujarat, 395006</p>
             <div class="contact">
               <p><strong>GSTIN:</strong> 24ALUPB9563G1ZR</p>
               <p><strong>Email:</strong> support@akmal.in</p>
@@ -213,7 +213,6 @@ const formatDateTime = (dateStr: string) => {
           <div class="address-section">
             <h3>Bill To</h3>
             <p class="name">${invoice.clientName}</p>
-            <p>${invoice.projectName}</p>
           </div>
         </div>
 
@@ -347,6 +346,21 @@ export default function Services() {
     return [];
   });
 
+  const [trashedInvoices, setTrashedInvoices] = useState<Invoice[]>(() => {
+    try {
+      const saved = localStorage.getItem("akmal-trashed-invoices");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("akmal-trashed-invoices", JSON.stringify(trashedInvoices));
+  }, [trashedInvoices]);
+
+  const [showTrash, setShowTrash] = useState(false);
+
   useEffect(() => {
     localStorage.setItem("akmal-invoices", JSON.stringify(invoices));
   }, [invoices]);
@@ -439,7 +453,6 @@ export default function Services() {
     localStorage.setItem("akmal-payments", JSON.stringify(payments));
   }, [payments]);
   const [newInvoiceData, setNewInvoiceData] = useState({
-    projectName: "",
     clientName: "",
   });
   const [newInvoiceItem, setNewInvoiceItem] = useState({
@@ -485,8 +498,8 @@ export default function Services() {
 
     const invoice: Invoice = {
       id: `INV-${String(invoices.length + 1).padStart(3, '0')}`,
-      title: `${newInvoiceData.projectName} - Invoice`,
-      projectName: newInvoiceData.projectName,
+      title: `Invoice for ${newInvoiceData.clientName}`,
+      projectName: "",
       clientName: newInvoiceData.clientName,
       clientAddress: "",
       clientGstin: "",
@@ -541,7 +554,7 @@ export default function Services() {
       });
     } catch {}
     
-    setNewInvoiceData({ projectName: "", clientName: "" });
+    setNewInvoiceData({ clientName: "" });
     setIsAddingInvoice(false);
     toast.success("Invoice created successfully");
 
@@ -707,12 +720,68 @@ export default function Services() {
     }
   };
 
-  const handleDeleteInvoice = (invoiceId: string) => {
-    setInvoices(invoices.filter((inv) => inv.id !== invoiceId));
-    if (selectedInvoice?.id === invoiceId) {
-      setSelectedInvoice(null);
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    const isAlreadyTrashed = trashedInvoices.some((inv) => inv.id === invoiceId);
+    
+    if (isAlreadyTrashed) {
+      if (confirm("Are you sure you want to permanently delete this invoice?")) {
+        setTrashedInvoices(trashedInvoices.filter((inv) => inv.id !== invoiceId));
+        if (selectedInvoice?.id === invoiceId) {
+          setSelectedInvoice(null);
+        }
+        toast.success("Invoice permanently deleted");
+      }
+    } else {
+      const invoiceToTrash = invoices.find((inv) => inv.id === invoiceId);
+      if (invoiceToTrash) {
+        setTrashedInvoices([invoiceToTrash, ...trashedInvoices]);
+        setInvoices(invoices.filter((inv) => inv.id !== invoiceId));
+        if (selectedInvoice?.id === invoiceId) {
+          setSelectedInvoice(null);
+        }
+        toast.success("Invoice moved to trash");
+        
+        try {
+          await fetch(`/api/invoices/${invoiceId}`, { method: "DELETE" });
+        } catch (e) {
+          console.error("Failed to delete invoice from server:", e);
+        }
+      }
     }
-    toast.success("Invoice deleted");
+  };
+
+  const handleRestoreInvoice = async (invoice: Invoice) => {
+    setTrashedInvoices(trashedInvoices.filter((inv) => inv.id !== invoice.id));
+    setInvoices([invoice, ...invoices]);
+    if (selectedInvoice?.id === invoice.id) {
+      setSelectedInvoice(invoice);
+    }
+    toast.success("Invoice restored");
+    
+    try {
+      const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+      await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoice_no: invoice.id,
+          project_name: invoice.projectName || "",
+          client_name: invoice.clientName || "",
+          date: invoice.date,
+          due_date: invoice.dueDate,
+          items: invoice.items || [],
+          subtotal: invoice.subtotal || 0,
+          gst_percentage: invoice.gstPercentage || 18,
+          gst_amount: invoice.gstAmount || 0,
+          total: invoice.total || 0,
+          status: invoice.status || "draft",
+          notes: invoice.notes || "",
+          user_id: cu.id
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to restore invoice to server:", e);
+    }
   };
 
   const handleUpdateStatus = (invoiceId: string, status: "draft" | "sent" | "paid") => {
@@ -819,18 +888,6 @@ export default function Services() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Project Name
-                  </label>
-                  <Input
-                    placeholder="Enter project name"
-                    value={newInvoiceData.projectName}
-                    onChange={(e) =>
-                      setNewInvoiceData({ ...newInvoiceData, projectName: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Client Name
                   </label>
                   <Input
@@ -915,18 +972,38 @@ export default function Services() {
           <div className="lg:col-span-1 order-2 lg:order-1">
             <Card className="glass lg:sticky lg:top-8">
               <div className="p-6">
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Invoices</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-slate-900">Invoices</h2>
+                  <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg text-xs">
+                    <button
+                      onClick={() => { setShowTrash(false); setSelectedInvoice(null); }}
+                      className={`px-2 py-1 rounded-md transition-colors ${!showTrash ? "bg-white text-indigo-600 shadow-sm font-medium" : "text-slate-600 hover:text-slate-950"}`}
+                    >
+                      Active
+                    </button>
+                    <button
+                      onClick={() => { setShowTrash(true); setSelectedInvoice(null); }}
+                      className={`px-2 py-1 rounded-md transition-colors ${showTrash ? "bg-white text-red-600 shadow-sm font-medium" : "text-slate-600 hover:text-slate-950"}`}
+                    >
+                      Trash ({trashedInvoices.length})
+                    </button>
+                  </div>
+                </div>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {invoices.length === 0 ? (
-                    <p className="text-sm text-slate-500">No invoices yet</p>
-                  ) : (
-                    invoices.map((invoice) => (
+                  {(() => {
+                    const list = showTrash ? trashedInvoices : invoices;
+                    if (list.length === 0) {
+                      return <p className="text-sm text-slate-500">No {showTrash ? "trashed" : ""} invoices yet</p>;
+                    }
+                    return list.map((invoice) => (
                       <button
                         key={invoice.id}
                         onClick={() => setSelectedInvoice(invoice)}
                         className={`w-full text-left p-3 rounded-lg transition-all ${
                           selectedInvoice?.id === invoice.id
-                            ? "bg-indigo-100 border-2 border-indigo-500"
+                            ? showTrash
+                              ? "bg-red-50 border-2 border-red-500"
+                              : "bg-indigo-100 border-2 border-indigo-500"
                             : "bg-white border border-slate-200 hover:border-indigo-300"
                         }`}
                       >
@@ -934,7 +1011,7 @@ export default function Services() {
                           <div className="flex-1">
                             <p className="font-medium text-slate-900 text-sm">{invoice.id}</p>
                             <p className="text-xs text-slate-600 truncate">
-                              {invoice.projectName}
+                              {invoice.clientName}
                             </p>
                           </div>
                           <span
@@ -946,8 +1023,8 @@ export default function Services() {
                           </span>
                         </div>
                       </button>
-                    ))
-                  )}
+                    ));
+                  })()}
                 </div>
               </div>
             </Card>
@@ -966,7 +1043,6 @@ export default function Services() {
                           {selectedInvoice.title || selectedInvoice.id}
                         </h2>
                         <p className="text-sm text-slate-500">{selectedInvoice.id}</p>
-                        <p className="text-slate-600">{selectedInvoice.projectName}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-slate-600">Date</p>
@@ -986,39 +1062,63 @@ export default function Services() {
                     </div>
 
                     <div className="flex gap-2 flex-wrap">
-                      <Select
-                        value={selectedInvoice.status}
-                        onValueChange={(value) =>
-                          handleUpdateStatus(
-                            selectedInvoice.id,
-                            value as "draft" | "sent" | "paid"
-                          )
-                        }
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="sent">Sent</SelectItem>
-                          <SelectItem value="paid">Paid</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => generatePDF(selectedInvoice)}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download PDF
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteInvoice(selectedInvoice.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {showTrash ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200"
+                            onClick={() => handleRestoreInvoice(selectedInvoice)}
+                          >
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Restore
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteInvoice(selectedInvoice.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Permanently
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Select
+                            value={selectedInvoice.status}
+                            onValueChange={(value) =>
+                              handleUpdateStatus(
+                                selectedInvoice.id,
+                                value as "draft" | "sent" | "paid"
+                              )
+                            }
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="draft">Draft</SelectItem>
+                              <SelectItem value="sent">Sent</SelectItem>
+                              <SelectItem value="paid">Paid</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => generatePDF(selectedInvoice)}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download PDF
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteInvoice(selectedInvoice.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </Card>

@@ -150,8 +150,8 @@ export default function Dashboard() {
   };
 
   const handleAddProject = () => {
-    if (!newProject.name.trim() || !newProject.client.trim()) {
-      toast.error("Project name and client name are required");
+    if (!newProject.client.trim()) {
+      toast.error("Client name is required");
       return;
     }
     if (newProject.types.length === 0) {
@@ -161,7 +161,7 @@ export default function Dashboard() {
 
     const project: Project = {
       id: String(Date.now()),
-      name: newProject.name.trim(),
+      name: newProject.client.trim(),
       client: newProject.client.trim(),
       types: newProject.types,
       description: newProject.description.trim(),
@@ -448,27 +448,15 @@ export default function Dashboard() {
                   <DialogDescription>Fill in the details to create a new project.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="projectName">Project Name *</Label>
-                      <Input
-                        id="projectName"
-                        placeholder="Enter project name"
-                        className="glass-sm"
-                        value={newProject.name}
-                        onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="clientName">Client Name *</Label>
-                      <Input
-                        id="clientName"
-                        placeholder="Enter client name"
-                        className="glass-sm"
-                        value={newProject.client}
-                        onChange={(e) => setNewProject({ ...newProject, client: e.target.value })}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="clientName">Client Name *</Label>
+                    <Input
+                      id="clientName"
+                      placeholder="Enter client name"
+                      className="glass-sm"
+                      value={newProject.client}
+                      onChange={(e) => setNewProject({ ...newProject, client: e.target.value })}
+                    />
                   </div>
 
                   <div className="space-y-2">

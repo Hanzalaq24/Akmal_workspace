@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   // Company Profile
-  const defaultCompany = { companyName: "Akmal", address: "FF, 11 T P NO 20,0037, CHHIPAVAD, GAMTAL, VARACHHA ROAD, NEAR MASJID, Nana Varachha, Surat, Gujarat, 395006", mobile: "8866795230", gstin: "24ALUPB9563G1ZR", email: "eakmalsurat@gmail.com", pan: "", bankName: "SBI", bankAccountName: "Abdulkarim Mohamad Afazal Bharucha", bankAccountNo: "32986992982", bankIfsc: "SBIN0011050", upiId: "886679520@apl", upiMobile: "8866795230" };
+  const defaultCompany = { companyName: "Akmal", address: "11, CHHIPAVAD, Near Masjid, Nana Varachha, Surat, Gujarat, 395006", mobile: "8866795230", gstin: "24ALUPB9563G1ZR", email: "eakmalsurat@gmail.com", pan: "", bankName: "SBI", bankAccountName: "Abdulkarim Mohamad Afazal Bharucha", bankAccountNo: "32986992982", bankIfsc: "SBIN0011050", upiId: "886679520@apl", upiMobile: "8866795230" };
   const [companyProfile, setCompanyProfile] = useState(() => {
     try { return { ...defaultCompany, ...JSON.parse(localStorage.getItem("akmal-company-profile") || "{}") }; } catch { return defaultCompany; }
   });
