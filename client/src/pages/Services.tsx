@@ -192,11 +192,11 @@ const formatDateTime = (dateStr: string) => {
             </svg>
           </div>
           <div class="company-info">
-            <p>${company.address}</p>
+            <p>FF, 11 T P NO 20,0037, CHHIPAVAD, GAMTAL, VARACHHA ROAD, NEAR MASJID, Nana Varachha, Surat, Surat, Surat, Gujarat, 395006</p>
             <div class="contact">
-              <p><strong>Mobile:</strong> ${company.mobile} ${company.gstin ? `&nbsp;&nbsp;&nbsp; <strong>GSTIN:</strong> ${company.gstin}` : ''}</p>
-              <p><strong>Email:</strong> ${company.email}</p>
-              ${company.pan ? `<p><strong>PAN:</strong> ${company.pan}</p>` : ''}
+              <p><strong>GSTIN:</strong> 24ALUPB9563G1ZR</p>
+              <p><strong>Email:</strong> support@akmal.in</p>
+              <p><strong>Mobile:</strong> 8866795230</p>
             </div>
           </div>
         </div>
