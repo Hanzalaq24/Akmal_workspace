@@ -298,19 +298,19 @@ const formatDateTime = (dateStr: string) => {
         ` : ''}
         
         <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between;">
-          <div style="width: 45%;">
+          <div style="width: 60%;">
             <h4 style="font-size: 12px; font-weight: 700; color: #000; margin-bottom: 8px;">BANK DETAILS</h4>
-            <p style="font-size: 11px; color: #444; margin: 3px 0;">Bank: <strong>${company.bankName || 'SBI'}</strong></p>
-            <p style="font-size: 11px; color: #444; margin: 3px 0;">A/C Name: <strong>${company.bankAccountName || '-'}</strong></p>
-            <p style="font-size: 11px; color: #444; margin: 3px 0;">A/C No: <strong>${company.bankAccountNo || '-'}</strong></p>
-            <p style="font-size: 11px; color: #444; margin: 3px 0;">IFSC: <strong>${company.bankIfsc || '-'}</strong></p>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">Bank Name: <strong>SBI</strong></p>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">Name: <strong>Abdulkarim Mohamad Afazal Bharucha</strong></p>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">Account No.: <strong>32986992982</strong></p>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">IFSC Code: <strong>SBIN0011050</strong></p>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">Phone No.: <strong>88667 95230</strong></p>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">UPI ID: <strong>886679520@apl</strong></p>
           </div>
-          <div style="width: 45%; text-align: center;">
-            ${company.upiId ? `
-              <h4 style="font-size: 12px; font-weight: 700; color: #000; margin-bottom: 8px;">Scan to Pay</h4>
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`upi://pay?pa=${company.upiId}&pn=${encodeURIComponent(company.companyName || 'Akmal')}&cu=INR`)}" style="width: 100px; height: 100px;" alt="QR" />
-              <p style="font-size: 10px; color: #666; margin-top: 4px;">${company.upiId}</p>
-            ` : ''}
+          <div style="width: 35%; text-align: center;">
+            <h4 style="font-size: 12px; font-weight: 700; color: #000; margin-bottom: 8px;">Scan to Pay</h4>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`upi://pay?pa=886679520@apl&pn=Akmal&cu=INR`)}" style="width: 100px; height: 100px;" alt="QR" />
+            <p style="font-size: 10px; color: #666; margin-top: 4px;">886679520@apl</p>
           </div>
         </div>
       </div>
