@@ -659,6 +659,45 @@ export default function Services() {
       total: subtotal + gstAmount + cessTotal + (selectedInvoice.additionalCharges || 0) - discountTotal,
     };
 
+    // Save to items catalog if it is a new item
+    try {
+      const savedItems = JSON.parse(localStorage.getItem("akmal-items") || "[]");
+      const nameExists = savedItems.some((i: any) => i.name.trim().toLowerCase() === newItem.name.trim().toLowerCase());
+      if (!nameExists && newItem.name.trim()) {
+        const itemToSave = {
+          id: String(Date.now()),
+          name: newItem.name.trim(),
+          itemType: "Service",
+          salesPrice: price,
+          description: newItem.description || "",
+          hsnOrSac: newItem.hsn || "",
+          gst: Number(newItem.cess) || 0,
+        };
+        savedItems.push(itemToSave);
+        localStorage.setItem("akmal-items", JSON.stringify(savedItems));
+
+        // Sync with API
+        const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+        if (cu?.id) {
+          fetch("/api/items", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: itemToSave.name,
+              item_type: "Service",
+              sales_price: itemToSave.salesPrice,
+              description: itemToSave.description,
+              hsn_or_sac: itemToSave.hsnOrSac,
+              gst: itemToSave.gst,
+              user_id: cu.id
+            })
+          }).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
     setInvoices(invoices.map((inv) => (inv.id === selectedInvoice.id ? updatedInvoice : inv)));
     setSelectedInvoice(updatedInvoice);
     setNewItem({ name: "", billingType: "Fixed", quantity: "" as any, unitPrice: "" as any, description: "", hsn: "", discount: "" as any, cess: "" as any });
