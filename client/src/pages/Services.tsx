@@ -355,6 +355,57 @@ export default function Services() {
     localStorage.setItem("akmal-invoices", JSON.stringify(invoices));
   }, [invoices]);
 
+  // Load invoices from API for current user, merge with local
+  useEffect(() => {
+    const loadFromApi = async () => {
+      const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+      if (!cu?.id) return;
+      try {
+        const res = await fetch(`/api/invoices?user_id=${cu.id}`);
+        if (!res.ok) return;
+        const serverInvoices: any[] = await res.json();
+        if (!Array.isArray(serverInvoices)) return;
+
+        const localInvoices = JSON.parse(localStorage.getItem("akmal-invoices") || "[]");
+        const merged: Invoice[] = [...localInvoices];
+        const localIds = new Set(localInvoices.map((inv: any) => inv.id));
+        for (const srv of serverInvoices) {
+          if (!localIds.has(srv.invoice_no)) {
+            merged.push({
+              id: srv.invoice_no,
+              title: srv.project_name ? `${srv.project_name} - Invoice` : srv.invoice_no,
+              projectName: srv.project_name || "",
+              clientName: srv.client_name || "",
+              clientAddress: "",
+              clientGstin: "",
+              clientPhone: "",
+              placeOfSupply: "Gujarat",
+              date: srv.date,
+              dueDate: srv.due_date,
+              items: typeof srv.items === "string" ? JSON.parse(srv.items) : (srv.items || []),
+              subtotal: Number(srv.subtotal) || 0,
+              gstPercentage: Number(srv.gst_percentage) || 18,
+              gstAmount: Number(srv.gst_amount) || 0,
+              additionalCharges: 0,
+              discount: 0,
+              roundOff: 0,
+              cess: 0,
+              total: Number(srv.total) || 0,
+              receivedAmount: 0,
+              status: srv.status || "draft",
+              notes: srv.notes || "",
+            });
+          }
+        }
+        if (merged.length !== localInvoices.length) {
+          setInvoices(merged);
+          localStorage.setItem("akmal-invoices", JSON.stringify(merged));
+        }
+      } catch {}
+    };
+    loadFromApi();
+  }, []);
+
   // One-time sync existing invoices to API
   useEffect(() => {
     const sync = async () => {

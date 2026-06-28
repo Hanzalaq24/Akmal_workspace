@@ -188,7 +188,20 @@ app.post("/api/invoices", async (req, res) => {
     const { invoice_no, project_name, client_name, date, due_date, items, subtotal, gst_percentage, gst_amount, total, status, notes, user_id } = req.body;
     const result = await pool.query(
       `INSERT INTO invoices (invoice_no, project_name, client_name, date, due_date, items, subtotal, gst_percentage, gst_amount, total, status, notes, user_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       ON CONFLICT (invoice_no, user_id) DO UPDATE SET
+         project_name = EXCLUDED.project_name,
+         client_name = EXCLUDED.client_name,
+         date = EXCLUDED.date,
+         due_date = EXCLUDED.due_date,
+         items = EXCLUDED.items,
+         subtotal = EXCLUDED.subtotal,
+         gst_percentage = EXCLUDED.gst_percentage,
+         gst_amount = EXCLUDED.gst_amount,
+         total = EXCLUDED.total,
+         status = EXCLUDED.status,
+         notes = EXCLUDED.notes
+       RETURNING *`,
       [invoice_no, project_name, client_name, date, due_date, JSON.stringify(items || []), subtotal, gst_percentage, gst_amount, total, status, notes || "", user_id || null]
     );
     res.json({ success: true, invoice: result.rows[0] });
