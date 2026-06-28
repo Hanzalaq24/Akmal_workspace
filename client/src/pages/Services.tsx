@@ -192,7 +192,6 @@ const formatDateTime = (dateStr: string) => {
             </svg>
           </div>
           <div class="company-info">
-            <h1>${company.companyName || company.name || 'Akmal'}</h1>
             <p>${company.address}</p>
             <div class="contact">
               <p><strong>Mobile:</strong> ${company.mobile} ${company.gstin ? `&nbsp;&nbsp;&nbsp; <strong>GSTIN:</strong> ${company.gstin}` : ''}</p>
@@ -209,16 +208,12 @@ const formatDateTime = (dateStr: string) => {
           <span>Due Date: ${new Date(invoice.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${dueDays > 0 ? `(${dueDays} day(s))` : ''}</span>
         </div>
 
-        <!-- Bill To / Ship To -->
+        <!-- Bill To -->
         <div class="addresses">
           <div class="address-section">
             <h3>Bill To</h3>
             <p class="name">${invoice.clientName}</p>
             <p>${invoice.projectName}</p>
-          </div>
-          <div class="address-section">
-            <h3>Ship To</h3>
-            <p class="name">${invoice.clientName}</p>
           </div>
         </div>
 
