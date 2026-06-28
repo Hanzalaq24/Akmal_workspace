@@ -224,11 +224,11 @@ const formatDateTime = (dateStr: string) => {
           <thead>
             <tr>
               <th>Products / Services</th>
-              <th class="text-right">HSN</th>
+              ${invoice.gstAmount > 0 ? `<th class="text-right">HSN</th>` : ''}
               <th class="text-right">Qty.</th>
               <th class="text-right">Rate</th>
               <th class="text-right">Disc.</th>
-              <th class="text-right">Tax</th>
+              ${invoice.gstAmount > 0 ? `<th class="text-right">Tax</th>` : ''}
               <th class="text-right">Amount</th>
             </tr>
           </thead>
@@ -244,11 +244,11 @@ const formatDateTime = (dateStr: string) => {
                   ${item.description ? `<br><span class="desc">${item.description}</span>` : ''}
                   ${item.billingType && item.billingType !== 'Fixed' ? `<br><span class="desc">${item.billingType}</span>` : ''}
                 </td>
-                <td class="text-right">${item.hsn || '-'}</td>
+                ${invoice.gstAmount > 0 ? `<td class="text-right">${item.hsn || '-'}</td>` : ''}
                 <td class="text-right">${item.quantity.toLocaleString('en-IN')}</td>
                 <td class="text-right">₹${item.unitPrice.toLocaleString('en-IN')}</td>
                 <td class="text-right">${item.discount ? '₹' + item.discount.toLocaleString('en-IN') : '-'}</td>
-                <td class="tax">₹${taxAmt.toLocaleString('en-IN')}<br>(${itemGstPct}%)</td>
+                ${invoice.gstAmount > 0 ? `<td class="tax">₹${taxAmt.toLocaleString('en-IN')}<br>(${itemGstPct}%)</td>` : ''}
                 <td class="text-right" style="font-weight:600;">₹${amtAfterDisc.toLocaleString('en-IN')}</td>
               </tr>`;
             }).join('')}
