@@ -397,8 +397,6 @@ export default function Services() {
   });
   const [newInvoiceItem, setNewInvoiceItem] = useState({
     name: "",
-    quantity: "" as any,
-    unitPrice: "" as any,
   });
   const [newItem, setNewItem] = useState({
     name: "",
@@ -412,21 +410,13 @@ export default function Services() {
   });
 
   const handleAddInvoice = () => {
-    if (!newInvoiceData.projectName || !newInvoiceData.clientName) {
-      toast.error("Please fill in all required fields");
+    if (!newInvoiceData.clientName) {
+      toast.error("Client name is required");
       return;
     }
 
-    if (!newInvoiceItem.name || !newInvoiceItem.quantity || !newInvoiceItem.unitPrice) {
+    if (!newInvoiceItem.name) {
       toast.error("Please add an item");
-      return;
-    }
-
-    const qty = typeof newInvoiceItem.quantity === 'string' ? parseInt(newInvoiceItem.quantity) : newInvoiceItem.quantity;
-    const price = typeof newInvoiceItem.unitPrice === 'string' ? parseFloat(newInvoiceItem.unitPrice) : newInvoiceItem.unitPrice;
-
-    if (qty <= 0 || price <= 0) {
-      toast.error("Quantity and price must be greater than 0");
       return;
     }
 
@@ -434,17 +424,17 @@ export default function Services() {
       id: String(Date.now()),
       name: newInvoiceItem.name,
       billingType: "Fixed",
-      quantity: qty,
-      unitPrice: price,
-      total: qty * price,
+      quantity: 1,
+      unitPrice: 0,
+      total: 0,
       description: "",
       hsn: "",
       discount: 0,
       cess: 0,
     };
 
-    const subtotal = item.total;
-    const gstAmount = calculateGST(subtotal, 18);
+    const subtotal = 0;
+    const gstAmount = 0;
 
     const invoice: Invoice = {
       id: `INV-${String(invoices.length + 1).padStart(3, '0')}`,
@@ -505,7 +495,7 @@ export default function Services() {
     } catch {}
     
     setNewInvoiceData({ projectName: "", clientName: "" });
-    setNewInvoiceItem({ name: "", quantity: "", unitPrice: "" });
+    setNewInvoiceItem({ name: "" });
     setIsAddingInvoice(false);
     toast.success("Invoice created successfully");
   };
@@ -786,7 +776,6 @@ export default function Services() {
                               setNewInvoiceItem({
                                 ...newInvoiceItem,
                                 name: found.name,
-                                unitPrice: String(found.salesPrice || ""),
                               });
                             } else {
                               setNewInvoiceItem({ ...newInvoiceItem, name: value });
@@ -825,44 +814,6 @@ export default function Services() {
                         }
                         className="mt-2"
                       />
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          Qty
-                        </label>
-                        <Input
-                          type="number"
-                          min="1"
-                          placeholder="1"
-                          value={newInvoiceItem.quantity}
-                          onChange={(e) =>
-                            setNewInvoiceItem({ ...newInvoiceItem, quantity: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          Unit Price
-                        </label>
-                        <Input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          value={newInvoiceItem.unitPrice}
-                          onChange={(e) =>
-                            setNewInvoiceItem({ ...newInvoiceItem, unitPrice: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                          Total
-                        </label>
-                        <div className="bg-slate-100 rounded-md p-2 text-center font-semibold text-slate-900">
-                          ₹{((Number(newInvoiceItem.quantity) || 0) * (Number(newInvoiceItem.unitPrice) || 0)).toLocaleString('en-IN')}
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
