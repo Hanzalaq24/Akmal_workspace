@@ -898,6 +898,40 @@ export default function Services() {
     }
   };
 
+  const handleSaveInvoiceToServer = async (invoice: Invoice) => {
+    try {
+      const cu = JSON.parse(localStorage.getItem("akmal-current-user") || "{}");
+      const res = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoice_no: invoice.id,
+          project_name: invoice.projectName || "",
+          client_name: invoice.clientName || "",
+          date: invoice.date,
+          due_date: invoice.dueDate,
+          items: invoice.items || [],
+          subtotal: invoice.subtotal || 0,
+          gst_percentage: invoice.gstPercentage || 18,
+          gst_amount: invoice.gstAmount || 0,
+          total: invoice.total || 0,
+          status: invoice.status || "draft",
+          notes: invoice.notes || "",
+          user_id: cu.id,
+          work_done_detail: invoice.workDoneDetail || "",
+          client_address: invoice.clientAddress || ""
+        }),
+      });
+      if (res.ok) {
+        toast.success("Invoice saved to server successfully");
+      } else {
+        toast.error("Failed to save invoice to server");
+      }
+    } catch {
+      toast.error("Failed to save invoice to server");
+    }
+  };
+
   const handleDeleteInvoice = async (invoiceId: string) => {
     const isAlreadyTrashed = trashedInvoices.some((inv) => inv.id === invoiceId);
     
@@ -1248,44 +1282,7 @@ export default function Services() {
                   </div>
                 </Card>
 
-                {/* GST Settings */}
-                <Card className="glass">
-                  <div className="p-6">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Tax Settings</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          GST Percentage (%)
-                        </label>
-                        <Select
-                          value={String(selectedInvoice.gstPercentage)}
-                          onValueChange={(value) =>
-                            handleUpdateGST(selectedInvoice.id, parseFloat(value))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="0">0% (No GST)</SelectItem>
-                            <SelectItem value="5">5% GST</SelectItem>
-                            <SelectItem value="12">12% GST</SelectItem>
-                            <SelectItem value="18">18% GST</SelectItem>
-                            <SelectItem value="28">28% GST</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          GST Amount
-                        </label>
-                        <div className="bg-slate-100 rounded-md p-2 text-center font-semibold text-slate-900">
-                          ₹{selectedInvoice.gstAmount.toLocaleString('en-IN')}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
+
 
                 {/* Invoice Items */}
                 <Card className="glass">
@@ -1859,12 +1856,8 @@ export default function Services() {
                       <Button size="sm" variant="outline" onClick={() => generatePDF(selectedInvoice)} className="flex items-center gap-1">
                         <Download className="w-3 h-3" /> Download
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => {
-                        const text = `Invoice ${selectedInvoice.id} - ₹${selectedInvoice.total.toLocaleString('en-IN')}`;
-                        const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-                        window.open(url, '_blank');
-                      }} className="flex items-center gap-1">
-                        <Share2 className="w-3 h-3" /> Share
+                      <Button size="sm" onClick={() => handleSaveInvoiceToServer(selectedInvoice)} className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white col-span-2">
+                        <Save className="w-3.5 h-3.5" /> Save to Server
                       </Button>
                       {getOutstandingAmount(selectedInvoice) > 0 && (
                         <Button size="sm" onClick={() => {
