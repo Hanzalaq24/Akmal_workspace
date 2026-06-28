@@ -305,12 +305,12 @@ const formatDateTime = (dateStr: string) => {
             <p style="font-size: 11px; color: #444; margin: 3px 0;">Account No.: <strong>32986992982</strong></p>
             <p style="font-size: 11px; color: #444; margin: 3px 0;">IFSC Code: <strong>SBIN0011050</strong></p>
             <p style="font-size: 11px; color: #444; margin: 3px 0;">Phone No.: <strong>88667 95230</strong></p>
-            <p style="font-size: 11px; color: #444; margin: 3px 0;">UPI ID: <strong>886679520@apl</strong></p>
+            <p style="font-size: 11px; color: #444; margin: 3px 0;">UPI ID: <strong>8866795230@apl</strong></p>
           </div>
           <div style="width: 35%; text-align: center;">
             <h4 style="font-size: 12px; font-weight: 700; color: #000; margin-bottom: 8px;">Scan to Pay</h4>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`upi://pay?pa=886679520@apl&pn=Akmal&am=${Math.max(0, invoice.total - (invoice.receivedAmount || 0))}&cu=INR`)}" style="width: 110px; height: 110px;" alt="QR" />
-            <p style="font-size: 10px; color: #666; margin-top: 4px;">886679520@apl</p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(`upi://pay?pa=8866795230@apl&pn=Akmal&am=${(invoice.total - (invoice.receivedAmount || 0)).toFixed(2)}&tn=Payment for ${invoice.id}&cu=INR`)}" style="width: 110px; height: 110px;" alt="QR" />
+            <p style="font-size: 10px; color: #666; margin-top: 4px;">8866795230@apl</p>
             <p style="font-size: 10px; color: #444; margin-top: 2px;">Amount: <strong>₹${(invoice.total - (invoice.receivedAmount || 0)).toLocaleString('en-IN')}</strong></p>
           </div>
         </div>
@@ -1505,16 +1505,17 @@ export default function Services() {
                     
                     {/* UPI QR Code */}
                     {(() => {
-                      const upiId = "886679520@apl";
-                      const upiLink = `upi://pay?pa=${upiId}&pn=Akmal&am=${selectedInvoice ? getOutstandingAmount(selectedInvoice) : ''}&cu=INR`;
-                      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`;
+                      const upiId = "8866795230@apl";
+                      const outstanding = selectedInvoice ? getOutstandingAmount(selectedInvoice) : 0;
+                      const upiLink = `upi://pay?pa=${upiId}&pn=Akmal&am=${outstanding.toFixed(2)}&tn=Payment for ${selectedInvoice?.id || 'Invoice'}&cu=INR`;
+                      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=10&data=${encodeURIComponent(upiLink)}`;
                       return (
                         <div className="mt-4 p-4 bg-white/60 rounded-xl border border-green-200 text-center">
                           <p className="text-sm font-medium text-slate-700 mb-2">Scan to Pay via UPI</p>
                           <img src={qrUrl} alt="UPI QR" className="w-40 h-40 mx-auto mb-3 rounded-xl" />
                           <p className="text-xs text-slate-500 mb-1">{upiId}</p>
                           {selectedInvoice && (
-                            <p className="text-sm font-semibold text-slate-700 mb-2">Amount: ₹{getOutstandingAmount(selectedInvoice).toLocaleString('en-IN')}</p>
+                            <p className="text-sm font-semibold text-slate-700 mb-2">Amount: ₹{outstanding.toLocaleString('en-IN')}</p>
                           )}
                           <a href={upiLink} className="inline-block w-full">
                             <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white w-full">
